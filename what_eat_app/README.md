@@ -71,9 +71,10 @@ flutter pub get
 
 ### 3. Cấu hình API Keys
 
-- **OpenWeatherMap API**: 
-  - Đăng ký tại [OpenWeatherMap](https://openweathermap.org/api)
-  - Cập nhật API key trong `lib/core/services/weather_service.dart`
+- **Weather Service**: 
+  - Ứng dụng sử dụng [Open-Meteo API](https://open-meteo.com/) - **miễn phí và không cần API key**
+  - Service đã được cấu hình sẵn trong `lib/core/services/weather_service.dart`
+  - Không cần cấu hình thêm gì, có thể sử dụng ngay
 
 ### 4. Chạy ứng dụng
 
