@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "55060102370",
+    "project_id": "futter-app-a0120",
+    "storage_bucket": "futter-app-a0120.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:55060102370:android:17885e2b7655f3f571f2bb",
+        "android_client_info": {
+          "package_name": "com.example.what_eat_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDw4SDjLpdqATl0UXnD9DQAOKb1MMmI-E4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
