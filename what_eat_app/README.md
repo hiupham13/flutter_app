@@ -111,6 +111,7 @@ Xem thêm trong thư mục `docs/`:
 - `overview_flutter.md` - Tổng quan kiến trúc
 - `database.md` - Schema database Firestore
 - `system_flow.md` - Luồng hoạt động hệ thống
+- `work_flow.md` - **Workflow & Development Phases** (Chi tiết từng phase và module)
 
 ## 🤝 Đóng góp
 
