@@ -102,9 +102,9 @@ lib/generated_plugin_registrant.dart
 **/macos/Flutter/ephemeral
 
 # Firebase & API Keys (QUAN TRỌNG - Không commit các file này)
-**/google-services.json
-**/GoogleService-Info.plist
-**/firebase_options.dart
+!**/google-services.json
+!**/GoogleService-Info.plist
+!**/firebase_options.dart
 **/*.env
 **/*.env.local
 **/*.env.*.local
