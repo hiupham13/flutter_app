@@ -33,14 +33,14 @@ Tài liệu này mô tả chi tiết từng phase và module cần hoàn thiện
 - [x] Firebase configuration
 
 ### 📦 Modules cần bổ sung:
-- [ ] **Error Handling & Logging System**
-  - [ ] Global error handler
-  - [ ] Crash reporting setup (Firebase Crashlytics)
-  - [ ] Logging service hoàn chỉnh
+- [x] **Error Handling & Logging System**
+  - [x] Global error handler
+  - [x] Crash reporting setup (Firebase Crashlytics)
+  - [x] Logging service hoàn chỉnh
 
 - [ ] **Network & Connectivity**
-  - [ ] Network connectivity checker
-  - [ ] Retry mechanism cho API calls
+  - [x] Network connectivity checker
+  - [x] Retry mechanism cho API calls
   - [ ] Offline mode detection
 
 **Timeline:** 1-2 tuần (Đã hoàn thành ~80%)
@@ -56,24 +56,24 @@ Tài liệu này mô tả chi tiết từng phase và module cần hoàn thiện
 **Tasks:**
 - [ ] **Setup Firebase Auth Providers**
   - [ ] Google Sign-In integration
-  - [ ] Email/Password authentication
+  - [x] Email/Password authentication
   - [ ] Phone authentication (optional)
   - [ ] Anonymous authentication (cho guest mode)
 
 - [ ] **Auth Service Layer**
-  - [ ] `lib/features/auth/data/repositories/auth_repository.dart`
+  - [x] `lib/features/auth/data/auth_repository.dart`
     - [ ] `signInWithGoogle()`
-    - [ ] `signInWithEmail()`
-    - [ ] `signUpWithEmail()`
-    - [ ] `signOut()`
-    - [ ] `getCurrentUser()`
+    - [x] `signInWithEmail()`
+    - [x] `signUpWithEmail()`
+    - [x] `signOut()`
+    - [x] `getCurrentUser()`
   - [ ] Error handling cho các trường hợp lỗi
 
 - [ ] **Auth State Management**
-  - [ ] `lib/features/auth/logic/auth_provider.dart`
-    - [ ] Auth state stream
+  - [x] `lib/features/auth/logic/auth_provider.dart`
+    - [x] Auth state stream
     - [ ] User profile state
-    - [ ] Auto-login on app start
+    - [x] Auto-login on app start (dựa trên auth stream + router guard)
 
 - [ ] **Auth UI Screens**
   - [ ] `lib/features/auth/presentation/login_screen.dart` (đã có, cần hoàn thiện)
@@ -277,31 +277,31 @@ Tài liệu này mô tả chi tiết từng phase và module cần hoàn thiện
 ### Module 4.1: Scoring Engine Enhancement
 
 **Tasks:**
-- [ ] **Scoring Engine** (đã có, cần hoàn thiện)
-  - [ ] `lib/features/recommendation/logic/scoring_engine.dart`
-    - [ ] **Hard Filters:**
-      - [ ] Filter by allergies
-      - [ ] Filter by budget
-      - [ ] Filter by dietary restrictions (vegetarian)
-      - [ ] Filter by available time (morning/lunch/dinner)
-    - [ ] **Context Scoring:**
-      - [ ] Weather scorer (hot/cold/rain multiplier)
-      - [ ] Mood scorer (stress/sick/happy)
-      - [ ] Companion scorer (alone/date/group)
-      - [ ] Time of day scorer
-    - [ ] **Personalization:**
-      - [ ] Boost recently eaten foods (avoid repetition)
-      - [ ] Boost user's favorite cuisines
-      - [ ] Penalize blacklisted foods
-    - [ ] **Randomization:**
-      - [ ] Add random factor (0-10% of score)
-    - [ ] **Final Sorting:**
-      - [ ] Sort by final score
-      - [ ] Return top 3-5 recommendations
+- [x] **Scoring Engine** (đã có, cần hoàn thiện)
+  - [x] `lib/features/recommendation/logic/scoring_engine.dart`
+    - [x] **Hard Filters:**
+      - [x] Filter by allergies
+      - [x] Filter by budget
+      - [x] Filter by dietary restrictions (vegetarian)
+      - [x] Filter by available time (morning/lunch/dinner)
+    - [x] **Context Scoring:**
+      - [x] Weather scorer (hot/cold/rain multiplier)
+      - [x] Mood scorer (stress/sick/happy)
+      - [x] Companion scorer (alone/date/group)
+      - [x] Time of day scorer
+    - [x] **Personalization:**
+      - [x] Boost recently eaten foods (avoid repetition)
+      - [x] Boost user's favorite cuisines
+      - [x] Penalize blacklisted foods
+    - [x] **Randomization:**
+      - [x] Add random factor (0-10% of score)
+    - [x] **Final Sorting:**
+      - [x] Sort by final score
+      - [x] Return top 3-5 recommendations
 
-- [ ] **Scoring Tests**
-  - [ ] Unit tests cho scoring logic
-  - [ ] Test cases cho các scenarios khác nhau
+- [x] **Scoring Tests**
+  - [x] Unit tests cho scoring logic
+  - [x] Test cases cho các scenarios khác nhau
 
 **Dependencies:** Food Model, Weather Service, User Preferences
 
@@ -312,28 +312,28 @@ Tài liệu này mô tả chi tiết từng phase và module cần hoàn thiện
 ### Module 4.2: Recommendation Provider
 
 **Tasks:**
-- [ ] **Recommendation Provider** (đã có, cần hoàn thiện)
-  - [ ] `lib/features/recommendation/logic/recommendation_provider.dart`
-    - [ ] `getRecommendation()` - Main method
-      - [ ] Collect context (weather, time, location)
-      - [ ] Get user preferences
-      - [ ] Fetch foods from repository
-      - [ ] Run scoring engine
-      - [ ] Return recommendations
-    - [ ] State management:
-      - [ ] Loading state
-      - [ ] Success state (with recommendations)
-      - [ ] Error state
-    - [ ] `getAnotherRecommendation()` - Re-roll
-    - [ ] `getRecommendationHistory()` - Lịch sử gợi ý
+- [x] **Recommendation Provider** (đã có, cần hoàn thiện)
+  - [x] `lib/features/recommendation/logic/recommendation_provider.dart`
+    - [x] `getRecommendation()` - Main method
+      - [x] Collect context (weather, time, location)
+      - [x] Get user preferences
+      - [x] Fetch foods from repository
+      - [x] Run scoring engine
+      - [x] Return recommendations
+    - [x] State management:
+      - [x] Loading state
+      - [x] Success state (with recommendations)
+      - [x] Error state
+    - [x] `getAnotherRecommendation()` - Re-roll
+    - [x] `getRecommendationHistory()` - Lịch sử gợi ý
 
-- [ ] **Context Manager**
-  - [ ] `lib/core/services/context_manager.dart`
-    - [ ] `getCurrentContext()` - Tổng hợp context
-      - [ ] Weather data
-      - [ ] Time of day
-      - [ ] Location
-      - [ ] User preferences
+- [x] **Context Manager**
+  - [x] `lib/core/services/context_manager.dart`
+    - [x] `getCurrentContext()` - Tổng hợp context
+      - [x] Weather data
+      - [x] Time of day
+      - [x] Location
+      - [x] User preferences
 
 **Dependencies:** Scoring Engine, Food Repository, Weather Service, Location Service
 
@@ -344,19 +344,19 @@ Tài liệu này mô tả chi tiết từng phase và module cần hoàn thiện
 ### Module 4.3: Copywriting System
 
 **Tasks:**
-- [ ] **Copywriting Service**
-  - [ ] `lib/core/services/copywriting_service.dart`
-    - [ ] `getGreetingMessage()` - Câu chào theo context
-    - [ ] `getRecommendationReason()` - Lý do gợi ý món
-    - [ ] `getJokeMessage()` - Câu joke đi kèm
-    - [ ] Load từ Firestore `app_configs/copywriting` hoặc local fallback
+- [x] **Copywriting Service**
+  - [x] `lib/core/services/copywriting_service.dart`
+    - [x] `getGreetingMessage()` - Câu chào theo context
+    - [x] `getRecommendationReason()` - Lý do gợi ý món
+    - [x] `getJokeMessage()` - Câu joke đi kèm
+    - [x] Load từ Firestore `app_configs/copywriting` hoặc local fallback
 
 - [ ] **Copywriting Data**
   - [ ] Tạo document `copywriting` trong `app_configs`
     - [ ] `greetings` - Câu chào theo weather/mood
     - [ ] `reasons` - Lý do gợi ý
     - [ ] `jokes` - Câu joke vui nhộn
-  - [ ] Local fallback data (nếu Firestore fail)
+  - [x] Local fallback data (nếu Firestore fail)
 
 **Dependencies:** Firestore, Context Manager
 
@@ -373,16 +373,16 @@ Tài liệu này mô tả chi tiết từng phase và module cần hoàn thiện
 ### Module 5.1: Dashboard Screen
 
 **Tasks:**
-- [ ] **Dashboard Screen** (đã có, cần hoàn thiện)
-  - [ ] `lib/features/dashboard/presentation/dashboard_screen.dart`
-    - [ ] **Context Header:**
-      - [ ] Dynamic greeting message (theo weather/time)
-      - [ ] Weather widget (temperature, condition, icon)
+- [x] **Dashboard Screen** (đã có, cần hoàn thiện)
+  - [x] `lib/features/dashboard/presentation/dashboard_screen.dart`
+    - [x] **Context Header:**
+      - [x] Dynamic greeting message (theo weather/time)
+      - [x] Weather widget (temperature, condition, icon)
       - [ ] Background thay đổi theo weather
-    - [ ] **Main Action Button:**
-      - [ ] Large prominent button "Gợi ý ngay"
+    - [x] **Main Action Button:**
+      - [x] Large prominent button "Gợi ý ngay"
       - [ ] Alternative: Slot machine animation
-      - [ ] Loading state
+      - [x] Loading state
     - [ ] **Quick Actions:**
       - [ ] Favorites list (nếu có)
       - [ ] Recent recommendations
@@ -390,9 +390,9 @@ Tài liệu này mô tả chi tiết từng phase và module cần hoàn thiện
       - [ ] Profile button
       - [ ] Settings button
 
-- [ ] **Dashboard Widgets**
-  - [ ] `lib/features/dashboard/presentation/widgets/weather_card.dart`
-  - [ ] `lib/features/dashboard/presentation/widgets/recommendation_button.dart`
+- [x] **Dashboard Widgets**
+  - [x] `lib/features/dashboard/presentation/widgets/weather_card.dart`
+  - [x] `lib/features/dashboard/presentation/widgets/recommendation_button.dart`
   - [ ] `lib/features/dashboard/presentation/widgets/quick_favorites.dart`
 
 **Dependencies:** Context Manager, Copywriting Service, Weather Service
@@ -404,23 +404,23 @@ Tài liệu này mô tả chi tiết từng phase và module cần hoàn thiện
 ### Module 5.2: Recommendation Input Bottom Sheet
 
 **Tasks:**
-- [ ] **Input Bottom Sheet**
-  - [ ] `lib/features/recommendation/presentation/widgets/input_bottom_sheet.dart`
-    - [ ] **Budget Selection:**
-      - [ ] 3 options: Cuối tháng (Rẻ) / Bình dân / Sang chảnh
-      - [ ] Icon-based selection
-    - [ ] **Companion Selection:**
-      - [ ] 3 options: Một mình / Hẹn hò / Nhóm bạn
-      - [ ] Icon-based selection
-    - [ ] **Mood Selection (Optional):**
-      - [ ] Vui / Bình thường / Stress / Ốm
-      - [ ] Icon-based selection
-    - [ ] **Action Button:**
-      - [ ] "CHỐT ĐƠN" button
-      - [ ] Disabled state khi chưa chọn đủ
-    - [ ] **Animations:**
-      - [ ] Slide up animation
-      - [ ] Selection animations
+- [x] **Input Bottom Sheet**
+  - [x] `lib/features/recommendation/presentation/widgets/input_bottom_sheet.dart`
+    - [x] **Budget Selection:**
+      - [x] 3 options: Cuối tháng (Rẻ) / Bình dân / Sang chảnh
+      - [x] Icon-based selection
+    - [x] **Companion Selection:**
+      - [x] 3 options: Một mình / Hẹn hò / Nhóm bạn
+      - [x] Icon-based selection
+    - [x] **Mood Selection (Optional):**
+      - [x] Vui / Bình thường / Stress / Ốm
+      - [x] Icon-based selection
+    - [x] **Action Button:**
+      - [x] "CHỐT ĐƠN" button
+      - [x] Disabled state khi chưa chọn đủ
+    - [x] **Animations:**
+      - [x] Slide up animation
+      - [x] Selection animations
 
 **Dependencies:** Recommendation Provider
 
@@ -431,28 +431,28 @@ Tài liệu này mô tả chi tiết từng phase và module cần hoàn thiện
 ### Module 5.3: Result Screen
 
 **Tasks:**
-- [ ] **Result Screen** (đã có, cần hoàn thiện)
-  - [ ] `lib/features/recommendation/presentation/result_screen.dart`
-    - [ ] **Food Card:**
-      - [ ] Hero image (animated)
-      - [ ] Food name (large, prominent)
-      - [ ] Price range indicator
-      - [ ] Tags (cuisine, meal type)
-    - [ ] **Recommendation Info:**
-      - [ ] Reason text ("Gợi ý vì...")
-      - [ ] Joke message
-    - [ ] **Action Buttons:**
-      - [ ] Primary: "TÌM QUÁN NGAY" → Deep link to Google Maps
-      - [ ] Secondary: "Gợi ý khác" → Re-roll
+- [x] **Result Screen** (đã có, cần hoàn thiện)
+  - [x] `lib/features/recommendation/presentation/result_screen.dart`
+    - [x] **Food Card:**
+      - [x] Hero image (animated)
+      - [x] Food name (large, prominent)
+      - [x] Price range indicator
+      - [x] Tags (cuisine, meal type)
+    - [x] **Recommendation Info:**
+      - [x] Reason text ("Gợi ý vì...")
+      - [x] Joke message
+    - [x] **Action Buttons:**
+      - [x] Primary: "TÌM QUÁN NGAY" → Deep link to Google Maps
+      - [x] Secondary: "Gợi ý khác" → Re-roll
       - [ ] Tertiary: "Lưu vào yêu thích"
-    - [ ] **Navigation:**
-      - [ ] Back to dashboard
+    - [x] **Navigation:**
+      - [x] Back to dashboard
       - [ ] Share button (optional)
 
-- [ ] **Result Widgets**
-  - [ ] `lib/features/recommendation/presentation/widgets/food_card.dart`
-  - [ ] `lib/features/recommendation/presentation/widgets/recommendation_reason.dart`
-  - [ ] `lib/features/recommendation/presentation/widgets/action_buttons.dart`
+- [x] **Result Widgets**
+  - [x] `lib/features/recommendation/presentation/widgets/food_card.dart`
+  - [x] `lib/features/recommendation/presentation/widgets/recommendation_reason.dart`
+  - [x] `lib/features/recommendation/presentation/widgets/action_buttons.dart`
 
 **Dependencies:** Recommendation Provider, Deep Link Service
 

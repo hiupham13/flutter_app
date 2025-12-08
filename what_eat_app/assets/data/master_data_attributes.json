@@ -1,0 +1,36 @@
+[
+    {
+      "id": "attributes",
+      "cuisines": [
+        {"id": "vn", "name": "Việt Nam", "icon": "🇻🇳"},
+        {"id": "kr", "name": "Hàn Quốc", "icon": "🇰🇷"},
+        {"id": "jp", "name": "Nhật Bản", "icon": "🇯🇵"},
+        {"id": "cn", "name": "Trung Hoa", "icon": "🇨🇳"},
+        {"id": "us_uk", "name": "Âu Mỹ", "icon": "🍔"},
+        {"id": "thai", "name": "Thái Lan", "icon": "🇹🇭"}
+      ],
+      "meal_types": [
+        {"id": "soup", "name": "Món nước (Bún/Phở)"},
+        {"id": "dry", "name": "Món khô (Cơm/Mì)"},
+        {"id": "hotpot", "name": "Lẩu & Nướng"},
+        {"id": "snack", "name": "Ăn vặt / Đường phố"},
+        {"id": "drink", "name": "Trà sữa / Cafe"},
+        {"id": "healthy", "name": "Eat Clean / Salad"}
+      ],
+      "flavors": [
+        {"id": "sour", "name": "Chua"},
+        {"id": "spicy", "name": "Cay"},
+        {"id": "sweet", "name": "Ngọt"},
+        {"id": "salty", "name": "Mặn"},
+        {"id": "bitter", "name": "Đắng"},
+        {"id": "bland", "name": "Thanh đạm"}
+      ],
+      "allergens": [
+        {"id": "seafood", "name": "Hải sản"},
+        {"id": "peanut", "name": "Đậu phộng"},
+        {"id": "dairy", "name": "Sữa / Phô mai"},
+        {"id": "egg", "name": "Trứng"},
+        {"id": "gluten", "name": "Bột mì (Gluten)"}
+      ]
+    }
+  ]
