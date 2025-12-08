@@ -1,0 +1,154 @@
+[
+    {
+      "id": "pho-bo",
+      "name": "Phở Bò Tái",
+      "description": "Phở bò tái truyền thống, nước dùng hầm xương 24h",
+      "images": ["https://placeholder.com/pho.jpg"],
+      "price_segment": 2,
+      "cuisine_id": "vn",
+      "meal_type_id": "soup",
+      "flavor_profile": ["salty", "sweet_balance"],
+      "search_keywords": ["phở", "noodle", "món nước", "ăn sáng"],
+      "available_times": ["morning", "dinner", "late_night"],
+      "is_active": true,
+      "context_scores": {
+        "weather_rain": 1.5,
+        "weather_hot": 0.7,
+        "mood_sick": 1.8,
+        "time_morning": 1.5
+      },
+      "map_query": "Quán phở bò ngon gần đây"
+    },
+    {
+      "id": "com-tam",
+      "name": "Cơm Tấm Sườn Bì Chả",
+      "description": "Sườn nướng than hoa, nước mắm kẹo, mỡ hành",
+      "images": ["https://placeholder.com/comtam.jpg"],
+      "price_segment": 2,
+      "cuisine_id": "vn",
+      "meal_type_id": "dry",
+      "flavor_profile": ["salty", "sweet"],
+      "search_keywords": ["cơm tấm", "sườn nướng", "cơm trưa"],
+      "available_times": ["morning", "lunch"],
+      "is_active": true,
+      "context_scores": {
+        "weather_hot": 1.2,
+        "weather_rain": 0.8,
+        "companion_alone": 1.5
+      },
+      "map_query": "Cơm tấm ngon gần đây"
+    },
+    {
+      "id": "bun-dau",
+      "name": "Bún Đậu Mắm Tôm",
+      "description": "Mẹt bún đậu đầy đủ, chả cốm, nem chua rán",
+      "images": ["https://placeholder.com/bundau.jpg"],
+      "price_segment": 2,
+      "cuisine_id": "vn",
+      "meal_type_id": "dry",
+      "flavor_profile": ["pungent", "salty"],
+      "search_keywords": ["bún đậu", "mắm tôm", "ăn trưa"],
+      "available_times": ["lunch", "dinner"],
+      "is_active": true,
+      "context_scores": {
+        "companion_group": 1.8,
+        "companion_date": 0.1,
+        "weather_hot": 0.8
+      },
+      "map_query": "Bún đậu mắm tôm ngon"
+    },
+    {
+      "id": "lau-thai",
+      "name": "Lẩu Thái Hải Sản",
+      "description": "Nước lẩu chua cay, tôm mực tươi sống",
+      "images": ["https://placeholder.com/lauthai.jpg"],
+      "price_segment": 3,
+      "cuisine_id": "vn",
+      "meal_type_id": "hotpot",
+      "flavor_profile": ["sour", "spicy"],
+      "search_keywords": ["lẩu", "hotpot", "hải sản"],
+      "available_times": ["dinner", "late_night"],
+      "is_active": true,
+      "context_scores": {
+        "weather_rain": 2.0,
+        "weather_cold": 2.0,
+        "companion_group": 2.0,
+        "companion_alone": 0.1
+      },
+      "map_query": "Quán lẩu thái ngon"
+    },
+    {
+      "id": "banh-mi",
+      "name": "Bánh Mì Thịt",
+      "description": "Bánh mì giòn rụm, pate gan, thịt nguội",
+      "images": ["https://placeholder.com/banhmi.jpg"],
+      "price_segment": 1,
+      "cuisine_id": "vn",
+      "meal_type_id": "dry",
+      "flavor_profile": ["crunchy", "salty"],
+      "search_keywords": ["bánh mì", "ăn nhanh", "bread"],
+      "available_times": ["morning", "lunch", "dinner", "late_night"],
+      "is_active": true,
+      "context_scores": {
+        "time_morning": 1.5,
+        "weather_rain": 0.8
+      },
+      "map_query": "Tiệm bánh mì ngon"
+    },
+    {
+      "id": "mi-cay",
+      "name": "Mì Cay 7 Cấp Độ",
+      "description": "Mì cay Hàn Quốc, xúc xích, cá viên, kim chi",
+      "images": ["https://placeholder.com/micay.jpg"],
+      "price_segment": 1,
+      "cuisine_id": "kr",
+      "meal_type_id": "soup",
+      "flavor_profile": ["spicy", "hot"],
+      "search_keywords": ["mì cay", "hàn quốc", "spicy noodle"],
+      "available_times": ["lunch", "dinner"],
+      "is_active": true,
+      "context_scores": {
+        "mood_stress": 1.8,
+        "weather_cold": 1.5,
+        "weather_hot": 0.5
+      },
+      "map_query": "Quán mì cay gần đây"
+    },
+    {
+      "id": "goi-cuon",
+      "name": "Gỏi Cuốn Tôm Thịt",
+      "description": "Cuốn tôm thịt, bún, rau sống, chấm tương đen",
+      "images": ["https://placeholder.com/goicuon.jpg"],
+      "price_segment": 1,
+      "cuisine_id": "vn",
+      "meal_type_id": "snack",
+      "flavor_profile": ["fresh", "nutty"],
+      "search_keywords": ["gỏi cuốn", "ăn vặt", "healthy"],
+      "available_times": ["afternoon", "dinner"],
+      "is_active": true,
+      "context_scores": {
+        "weather_hot": 1.6,
+        "diet_low_carb": 1.5
+      },
+      "map_query": "Gỏi cuốn ngon"
+    },
+     {
+      "id": "bun-bo-hue",
+      "name": "Bún Bò Huế",
+      "description": "Giò heo, chả cua, nước dùng đậm đà mắm ruốc",
+      "images": ["https://placeholder.com/bunbo.jpg"],
+      "price_segment": 2,
+      "cuisine_id": "vn",
+      "meal_type_id": "soup",
+      "flavor_profile": ["spicy", "salty"],
+      "search_keywords": ["bún bò", "huế", "spicy"],
+      "available_times": ["morning", "lunch"],
+      "is_active": true,
+      "context_scores": {
+         "weather_rain": 1.4,
+         "weather_cold": 1.4,
+         "mood_happy": 1.0
+      },
+      "map_query": "Bún bò huế ngon"
+    }
+  ]
