@@ -1,0 +1,57 @@
+[
+    {
+      "id": "tra-sua-tran-chau",
+      "name": "Trà Sữa Trân Châu",
+      "description": "Trà sữa truyền thống, trân châu đen dai ngon",
+      "images": ["https://placeholder.com/tstc.jpg"],
+      "price_segment": 1,
+      "cuisine_id": "vn",
+      "meal_type_id": "drink",
+      "flavor_profile": ["sweet"],
+      "search_keywords": ["trà sữa", "boba", "milk tea"],
+      "available_times": ["afternoon", "dinner", "late_night"],
+      "is_active": true,
+      "context_scores": {
+        "weather_hot": 2.0,
+        "mood_stress": 1.5,
+        "time_afternoon": 1.8
+      },
+      "map_query": "Trà sữa ngon gần đây"
+    },
+    {
+      "id": "pizza-bo",
+      "name": "Pizza Bò Phô Mai",
+      "description": "Đế mỏng giòn, bò băm, phô mai mozzarella kéo sợi",
+      "images": ["https://placeholder.com/pizza.jpg"],
+      "price_segment": 3,
+      "cuisine_id": "us_uk",
+      "meal_type_id": "dry",
+      "flavor_profile": ["salty", "fatty"],
+      "search_keywords": ["pizza", "đồ âu", "fast food"],
+      "available_times": ["lunch", "dinner"],
+      "is_active": true,
+      "context_scores": {
+        "companion_group": 1.8,
+        "companion_date": 1.2
+      },
+      "map_query": "Pizza ngon"
+    },
+    {
+      "id": "salad-uc-ga",
+      "name": "Salad Ức Gà Sốt Mè",
+      "description": "Rau xanh, ức gà áp chảo, sốt mè rang healthy",
+      "images": ["https://placeholder.com/salad.jpg"],
+      "price_segment": 2,
+      "cuisine_id": "us_uk",
+      "meal_type_id": "healthy",
+      "flavor_profile": ["bland", "fresh"],
+      "search_keywords": ["salad", "eat clean", "giảm cân"],
+      "available_times": ["lunch", "dinner"],
+      "is_active": true,
+      "context_scores": {
+        "diet_low_carb": 2.0,
+        "weather_hot": 1.2
+      },
+      "map_query": "Quán salad healthy"
+    }
+  ]

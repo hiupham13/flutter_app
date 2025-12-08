@@ -1,0 +1,32 @@
+[
+    {
+      "uid": "user_student",
+      "info": { "display_name": "Sinh Viên Nghèo", "email": "student@test.com" },
+      "settings": {
+        "default_budget": 1, 
+        "spice_tolerance": 5, 
+        "excluded_allergens": []
+      },
+      "stats": { "streak_days": 2 }
+    },
+    {
+      "uid": "user_office",
+      "info": { "display_name": "Chị Văn Phòng", "email": "office@test.com" },
+      "settings": {
+        "default_budget": 2, 
+        "spice_tolerance": 1, 
+        "excluded_allergens": ["peanut"]
+      },
+      "stats": { "streak_days": 10 }
+    },
+    {
+      "uid": "user_rich",
+      "info": { "display_name": "Rich Kid", "email": "boss@test.com" },
+      "settings": {
+        "default_budget": 3, 
+        "spice_tolerance": 3, 
+        "excluded_allergens": ["seafood"]
+      },
+      "stats": { "streak_days": 0 }
+    }
+  ]

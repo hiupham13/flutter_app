@@ -4,14 +4,14 @@ import 'package:go_router/go_router.dart';
 
 import '../logic/auth_provider.dart';
 
-class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+class RegisterScreen extends ConsumerStatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
@@ -26,7 +26,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final auth = ref.read(authControllerProvider.notifier);
-    await auth.signIn(_emailCtrl.text.trim(), _passwordCtrl.text.trim());
+    await auth.signUp(_emailCtrl.text.trim(), _passwordCtrl.text.trim());
     final state = ref.read(authControllerProvider);
     state.whenOrNull(
       data: (user) {
@@ -49,7 +49,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Đăng nhập'),
+        title: const Text('Đăng ký'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -83,12 +83,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Đăng nhập'),
+                      : const Text('Tạo tài khoản'),
                 ),
               ),
               TextButton(
-                onPressed: () => context.goNamed('register'),
-                child: const Text('Chưa có tài khoản? Đăng ký'),
+                onPressed: () => context.goNamed('login'),
+                child: const Text('Đã có tài khoản? Đăng nhập'),
               ),
             ],
           ),

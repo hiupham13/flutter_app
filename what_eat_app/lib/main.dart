@@ -5,34 +5,41 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import 'app.dart';
 import 'core/utils/logger.dart';
+import 'core/services/error_handler.dart';
 
 import 'firebase_options.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  // Global guarded zone (crash reporting)
+  await AppErrorHandler.runGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Firebase
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
+    // Initialize Firebase
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      AppLogger.info('Firebase initialized successfully');
+    } catch (e, st) {
+      AppLogger.error('Firebase initialization failed: $e', e, st);
+      AppLogger.warning('Hãy chạy lệnh: flutterfire configure');
+    }
+
+    // Crashlytics & global error hooks
+    await AppErrorHandler.init();
+
+    // Initialize Hive for local storage
+    try {
+      await Hive.initFlutter();
+      AppLogger.info('Hive initialized successfully');
+    } catch (e, st) {
+      AppLogger.error('Hive initialization failed: $e', e, st);
+    }
+
+    runApp(
+      const ProviderScope(
+        child: WhatEatApp(),
+      ),
     );
-    AppLogger.info('Firebase initialized successfully');
-  } catch (e) {
-    AppLogger.error('Firebase initialization failed: $e');
-    AppLogger.warning('Hãy chạy lệnh: flutterfire configure');
-  }
-
-  // Initialize Hive for local storage
-  try {
-    await Hive.initFlutter();
-    AppLogger.info('Hive initialized successfully');
-  } catch (e) {
-    AppLogger.error('Hive initialization failed: $e');
-  }
-
-  runApp(
-    const ProviderScope(
-      child: WhatEatApp(),
-    ),
-  );
+  });
 }

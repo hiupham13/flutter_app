@@ -75,8 +75,8 @@ class FoodModel {
       ),
       mapQuery: data['map_query'] as String? ?? '',
       isActive: data['is_active'] as bool? ?? true,
-      createdAt: (data['created_at'] as Timestamp).toDate(),
-      updatedAt: (data['updated_at'] as Timestamp).toDate(),
+      createdAt: (data['created_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      updatedAt: (data['updated_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
       viewCount: data['view_count'] as int? ?? 0,
       pickCount: data['pick_count'] as int? ?? 0,
     );

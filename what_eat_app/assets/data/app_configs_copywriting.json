@@ -1,0 +1,43 @@
+[
+    {
+      "id": "copywriting",
+      "greetings": {
+        "morning": ["Chào buổi sáng! Nạp năng lượng đi nào ☀️", "Dậy sớm để thành công... hoặc để đi ăn sáng!"],
+        "lunch": ["Trưa rồi, cái bụng đang biểu tình kìa 🕛", "Nghỉ tay đi ăn chút gì cho lại sức nhé!"],
+        "dinner": ["Tối nay ăn gì để không mập nhỉ? (Đùa thôi) 🌙", "Về nhà ăn cơm hay ra phố đây?"],
+        "late_night": ["Giờ này còn thức thì chỉ có đói thôi 🦉", "Chiếc bụng đói không cho ta ngủ..."]
+      },
+      "weather_reactions": {
+        "hot": [
+          "Trời nóng đổ lửa, kiếm gì mát lạnh mà 'húp' thôi! 🥵",
+          "Nắng thế này đừng ra đường, order về cho lành!",
+          "Thời tiết này chỉ hợp với trà sữa full topping."
+        ],
+        "rain": [
+          "Mưa rơi tí tách, làm nồi lẩu là nhức nách! 🌧️",
+          "Trời mưa lạnh lạnh, ăn đồ nướng là đúng bài.",
+          "Mưa buồn quá, kiếm gì cay cay ăn cho ấm lòng đi."
+        ],
+        "cold": [
+          "Lạnh quéo cò, cháo sườn hay phở nóng đây? 🥶",
+          "Gió mùa về, nhớ mặc ấm và ăn no nhé!"
+        ]
+      },
+      "budget_jokes": {
+        "broke": [
+          "Ví mỏng thì mình ăn thanh cảnh, bánh mì thẳng tiến!",
+          "Cuối tháng rồi, mì tôm hay cơm bụi đây người anh em?",
+          "Tình hình tài chính: Ổn (lòi lìa). Gợi ý món rẻ nè!"
+        ],
+        "rich": [
+          "Hôm nay ví dày, bung lụa đi ngại gì vết bẩn!",
+          "Đại gia ngầm, ăn gì sang chảnh check-in nào."
+        ]
+      },
+      "recommendation_reasons": [
+        "Gợi ý món này vì hợp với thời tiết đang {weather} nè!",
+        "Thấy bạn đang {mood}, món này sẽ giúp cải thiện tâm trạng.",
+        "Món tủ của dân sành ăn khu vực này đó."
+      ]
+    }
+  ]

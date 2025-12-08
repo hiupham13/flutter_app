@@ -14,9 +14,17 @@ class FoodFirestoreService {
           .where('is_active', isEqualTo: true)
           .get();
 
-      return querySnapshot.docs
-          .map((doc) => FoodModel.fromFirestore(doc))
-          .toList();
+      final foods = <FoodModel>[];
+      for (final doc in querySnapshot.docs) {
+        try {
+          final food = FoodModel.fromFirestore(doc);
+          foods.add(food);
+        } catch (e) {
+          AppLogger.error('Error parsing food document ${doc.id}: $e');
+          // Skip invalid documents, continue with others
+        }
+      }
+      return foods;
     } catch (e) {
       AppLogger.error('Error fetching foods from Firestore: $e');
       return [];
