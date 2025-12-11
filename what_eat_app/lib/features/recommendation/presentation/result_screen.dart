@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../models/food_model.dart';
 import '../../../../core/services/deep_link_service.dart';
 import '../../../../core/services/copywriting_service.dart';
+import '../../../../core/services/activity_log_service.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../logic/recommendation_provider.dart';
 import '../logic/scoring_engine.dart';
 
@@ -29,7 +33,9 @@ class ResultScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.share),
             onPressed: () {
-              // TODO: Implement share functionality
+              final text =
+                  'Thử món ${food.name} nhé? Tìm quán: https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(food.mapQuery)}';
+              Share.share(text, subject: 'Hôm Nay Ăn Gì?');
             },
           ),
         ],
@@ -119,20 +125,22 @@ class ResultScreen extends ConsumerWidget {
   }
 
   Widget _buildFoodImage() {
+    final imageUrl = _firstValidImage(food.images);
+
     return Container(
       height: 300,
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.grey[200],
-        image: food.images.isNotEmpty
+        image: imageUrl != null
             ? DecorationImage(
-                image: NetworkImage(food.images.first),
+                image: NetworkImage(imageUrl),
                 fit: BoxFit.cover,
                 onError: (_, __) {},
               )
             : null,
       ),
-      child: food.images.isEmpty
+      child: imageUrl == null
           ? const Center(
               child: Icon(
                 Icons.restaurant,
@@ -235,6 +243,28 @@ class ResultScreen extends ConsumerWidget {
           width: double.infinity,
           child: ElevatedButton.icon(
             onPressed: () async {
+              final userId = FirebaseAuth.instance.currentUser?.uid;
+
+              if (userId != null) {
+                // Best-effort logging; errors are handled inside services
+                final activityLogService =
+                    ref.read(activityLogServiceProvider);
+                final analyticsService = ref.read(analyticsServiceProvider);
+
+                await Future.wait([
+                  activityLogService.logMapClick(
+                    userId: userId,
+                    food: food,
+                  ),
+                  analyticsService.logMapOpened(food),
+                ]);
+
+                // Also mark food as selected
+                await ref
+                    .read(recommendationProvider.notifier)
+                    .selectFood(food.id);
+              }
+
               final success = await deepLinkService.openGoogleMaps(food.mapQuery);
               if (!success && context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -277,7 +307,27 @@ class ResultScreen extends ConsumerWidget {
             ),
           ),
         ),
+        const SizedBox(height: 12),
+
+        // Tertiary: Lưu vào yêu thích (stub)
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: null,
+            icon: const Icon(Icons.favorite_border),
+            label: const Text('Lưu vào yêu thích (sắp có)'),
+          ),
+        ),
       ],
     );
+  }
+
+  String? _firstValidImage(List<String> urls) {
+    for (final url in urls) {
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        return url;
+      }
+    }
+    return null;
   }
 }
