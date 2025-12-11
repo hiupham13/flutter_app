@@ -29,6 +29,42 @@ class AuthController extends StateNotifier<AsyncValue<User?>> {
     }
   }
 
+  Future<void> signInWithGoogle() async {
+    state = const AsyncValue.loading();
+    try {
+      final cred = await _repo.signInWithGoogle();
+      state = AsyncValue.data(cred.user);
+    } on FirebaseAuthException catch (e, st) {
+      state = AsyncValue.error(e.message ?? 'Đăng nhập Google thất bại', st);
+    } catch (e, st) {
+      state = AsyncValue.error('Đăng nhập Google thất bại', st);
+    }
+  }
+
+  Future<void> signInWithFacebook() async {
+    state = const AsyncValue.loading();
+    try {
+      final cred = await _repo.signInWithFacebook();
+      state = AsyncValue.data(cred.user);
+    } on FirebaseAuthException catch (e, st) {
+      state = AsyncValue.error(e.message ?? 'Đăng nhập Facebook thất bại', st);
+    } catch (e, st) {
+      state = AsyncValue.error('Đăng nhập Facebook thất bại', st);
+    }
+  }
+
+  Future<void> sendResetEmail(String email) async {
+    state = const AsyncValue.loading();
+    try {
+      await _repo.sendPasswordResetEmail(email);
+      state = const AsyncValue.data(null);
+    } on FirebaseAuthException catch (e, st) {
+      state = AsyncValue.error(e.message ?? 'Không gửi được email khôi phục', st);
+    } catch (e, st) {
+      state = AsyncValue.error('Không gửi được email khôi phục', st);
+    }
+  }
+
   Future<void> signUp(String email, String password) async {
     state = const AsyncValue.loading();
     try {

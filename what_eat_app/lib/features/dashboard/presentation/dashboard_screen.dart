@@ -5,7 +5,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/services/context_manager.dart';
 import '../../../../core/services/copywriting_service.dart';
 import '../../../../core/services/weather_service.dart';
+import '../../../../core/services/activity_log_service.dart';
+import '../../../../core/services/analytics_service.dart';
+import '../../../../models/food_model.dart';
 import '../../recommendation/logic/recommendation_provider.dart';
+import '../../recommendation/logic/scoring_engine.dart';
 import '../../recommendation/presentation/widgets/input_bottom_sheet.dart';
 import '../../user/data/user_preferences_repository.dart';
 import '../../auth/logic/auth_provider.dart';
@@ -100,6 +104,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       spiceTolerance: userSettings?.spiceTolerance ?? 2,
     );
 
+    // Log activity & analytics (best-effort, non-blocking errors handled inside)
+    final activityLogService = ref.read(activityLogServiceProvider);
+    final analyticsService = ref.read(analyticsServiceProvider);
+    await Future.wait([
+      activityLogService.logRecommendationRequest(
+        userId: userId,
+        context: recommendationContext,
+      ),
+      analyticsService.logRecommendationRequested(recommendationContext),
+    ]);
+
     // Get recommendation
     final notifier = ref.read(recommendationProvider.notifier);
     await notifier.getRecommendations(
@@ -172,8 +187,19 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
                 const SizedBox(height: 32),
 
-                // Quick Actions (if needed in future)
-                // _buildQuickActions(),
+                // Quick Actions
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _buildQuickActions(),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Recent Recommendations
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _buildRecentRecommendations(),
+                ),
               ],
             ),
           ),
@@ -186,14 +212,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.orange[400]!,
-            Colors.orange[600]!,
-          ],
-        ),
+        gradient: _buildWeatherGradient(_contextSummary?.weather),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -219,6 +238,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ],
       ),
     );
+  }
+
+  LinearGradient _buildWeatherGradient(WeatherData? weather) {
+    if (weather == null) {
+      return LinearGradient(colors: [Colors.orange[400]!, Colors.orange[600]!]);
+    }
+    if (weather.isHot) {
+      return const LinearGradient(colors: [Color(0xFFFF8C42), Color(0xFFFF5722)]);
+    }
+    if (weather.isRainy) {
+      return const LinearGradient(colors: [Color(0xFF4FC3F7), Color(0xFF0288D1)]);
+    }
+    if (weather.isCold) {
+      return const LinearGradient(colors: [Color(0xFF90CAF9), Color(0xFF1E88E5)]);
+    }
+    return const LinearGradient(colors: [Color(0xFFFFB74D), Color(0xFFFF9800)]);
   }
 
   Widget _buildWeatherCard(ContextSummary summary) {
@@ -379,6 +414,122 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildQuickActions() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Nhanh',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => context.pushNamed('favorites'),
+                icon: const Icon(Icons.favorite_border),
+                label: const Text('Yêu thích (stub)'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  await _loadContext();
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Làm mới bối cảnh xong')),
+                  );
+                },
+                icon: const Icon(Icons.refresh),
+                label: const Text('Làm mới thời tiết'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRecentRecommendations() {
+    final recommendationState = ref.watch(recommendationProvider);
+    final history = recommendationState.history;
+
+    if (history.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final items = history.take(3).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Gợi ý gần đây',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        ...items.map(
+          (food) => Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: ListTile(
+              leading: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: SizedBox(
+                  width: 56,
+                  height: 56,
+                  child: _buildFoodThumbnail(food),
+                ),
+              ),
+              title: Text(
+                food.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Text(
+                food.cuisineId.toUpperCase(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () {
+                final ctx = RecommendationContext(
+                  budget: food.priceSegment,
+                  companion: 'alone',
+                );
+                context.pushNamed(
+                  'result',
+                  extra: {
+                    'food': food,
+                    'context': ctx,
+                  },
+                );
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFoodThumbnail(FoodModel food) {
+    final url = food.images.isNotEmpty ? food.images.first : null;
+    if (url == null ||
+        !(url.startsWith('http://') || url.startsWith('https://'))) {
+      return const Icon(Icons.restaurant);
+    }
+
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => const Icon(Icons.restaurant),
     );
   }
 }

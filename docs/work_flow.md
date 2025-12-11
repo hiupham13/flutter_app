@@ -55,19 +55,19 @@ Tài liệu này mô tả chi tiết từng phase và module cần hoàn thiện
 
 **Tasks:**
 - [ ] **Setup Firebase Auth Providers**
-  - [ ] Google Sign-In integration
+  - [x] Google Sign-In integration
   - [x] Email/Password authentication
   - [ ] Phone authentication (optional)
   - [ ] Anonymous authentication (cho guest mode)
 
 - [ ] **Auth Service Layer**
   - [x] `lib/features/auth/data/auth_repository.dart`
-    - [ ] `signInWithGoogle()`
+    - [x] `signInWithGoogle()`
     - [x] `signInWithEmail()`
     - [x] `signUpWithEmail()`
     - [x] `signOut()`
     - [x] `getCurrentUser()`
-  - [ ] Error handling cho các trường hợp lỗi
+  - [x] Error handling cho các trường hợp lỗi
 
 - [ ] **Auth State Management**
   - [x] `lib/features/auth/logic/auth_provider.dart`
@@ -76,13 +76,13 @@ Tài liệu này mô tả chi tiết từng phase và module cần hoàn thiện
     - [x] Auto-login on app start (dựa trên auth stream + router guard)
 
 - [ ] **Auth UI Screens**
-  - [ ] `lib/features/auth/presentation/login_screen.dart` (đã có, cần hoàn thiện)
-    - [ ] Google Sign-In button
-    - [ ] Email/Password form
-    - [ ] Loading states
-    - [ ] Error messages
-  - [ ] `lib/features/auth/presentation/register_screen.dart`
-  - [ ] `lib/features/auth/presentation/forgot_password_screen.dart`
+  - [x] `lib/features/auth/presentation/login_screen.dart` (đã có, cần hoàn thiện)
+    - [x] Google Sign-In button
+    - [x] Email/Password form
+    - [x] Loading states
+    - [x] Error messages
+  - [x] `lib/features/auth/presentation/register_screen.dart`
+  - [x] `lib/features/auth/presentation/forgot_password_screen.dart`
 
 **Dependencies:** Firebase Auth, Google Sign-In plugin
 
@@ -93,23 +93,23 @@ Tài liệu này mô tả chi tiết từng phase và module cần hoàn thiện
 ### Module 2.2: User Profile Management
 
 **Tasks:**
-- [ ] **User Model Extension**
-  - [ ] Cập nhật `lib/models/user_model.dart`
-    - [ ] Thêm fields: preferences, settings, stats
-    - [ ] `fromFirestore()` method
-    - [ ] `toFirestore()` method
+- [x] **User Model Extension**
+  - [x] Cập nhật `lib/models/user_model.dart`
+    - [x] Thêm fields: preferences, settings, stats
+    - [x] `fromFirestore()` method
+    - [x] `toFirestore()` method
 
-- [ ] **User Repository**
-  - [ ] `lib/features/auth/data/repositories/user_repository.dart`
-    - [ ] `createUserProfile()`
-    - [ ] `updateUserProfile()`
-    - [ ] `getUserProfile()`
-    - [ ] `updatePreferences()`
+- [x] **User Repository**
+  - [x] `lib/features/auth/data/repositories/user_repository.dart`
+    - [x] `createUserProfile()`
+    - [x] `updateUserProfile()`
+    - [x] `getUserProfile()`
+    - [x] `updatePreferences()`
 
-- [ ] **User Profile Provider**
-  - [ ] `lib/features/auth/logic/user_profile_provider.dart`
-    - [ ] Stream user data
-    - [ ] Update profile methods
+- [x] **User Profile Provider**
+  - [x] `lib/features/user/logic/user_profile_provider.dart`
+    - [x] Stream user data
+    - [x] Update profile methods
 
 **Dependencies:** Firestore, User Model
 
@@ -120,25 +120,25 @@ Tài liệu này mô tả chi tiết từng phase và module cần hoàn thiện
 ### Module 2.3: Onboarding Flow
 
 **Tasks:**
-- [ ] **Onboarding Screen**
-  - [ ] `lib/features/onboarding/onboarding_screen.dart` (đã có, cần hoàn thiện)
-    - [ ] Multi-step form
-    - [ ] Step 1: Dị ứng (allergies)
-    - [ ] Step 2: Khả năng ăn cay (spice tolerance slider)
-    - [ ] Step 3: Mức chi tiêu mặc định (budget default)
-    - [ ] Step 4: Sở thích ẩm thực (cuisines)
-    - [ ] Progress indicator
-    - [ ] Navigation (Next/Back/Skip)
+- [x] **Onboarding Screen**
+  - [x] `lib/features/onboarding/onboarding_screen.dart` (đã có, cần hoàn thiện)
+    - [x] Multi-step form
+    - [x] Step 1: Dị ứng (allergies)
+    - [x] Step 2: Khả năng ăn cay (spice tolerance slider)
+    - [x] Step 3: Mức chi tiêu mặc định (budget default)
+    - [x] Step 4: Sở thích ẩm thực (cuisines)
+    - [x] Progress indicator
+    - [x] Navigation (Next/Back/Skip)
 
-- [ ] **Onboarding Logic**
-  - [ ] `lib/features/onboarding/logic/onboarding_provider.dart`
-    - [ ] Save preferences to Firestore
-    - [ ] Mark onboarding as completed
-    - [ ] Navigate to dashboard after completion
+- [x] **Onboarding Logic**
+  - [x] `lib/features/onboarding/logic/onboarding_provider.dart`
+    - [x] Save preferences to Firestore
+    - [x] Mark onboarding as completed
+    - [x] Navigate to dashboard after completion
 
-- [ ] **Onboarding State Management**
-  - [ ] Check if user has completed onboarding
-  - [ ] Route guard trong app router
+- [x] **Onboarding State Management**
+  - [x] Check if user has completed onboarding
+  - [x] Route guard trong app router
 
 **Dependencies:** User Repository, Firestore
 
@@ -169,12 +169,14 @@ Tài liệu này mô tả chi tiết từng phase và module cần hoàn thiện
   - [ ] Tạo collection `users` (sẽ được tạo tự động khi user đăng ký)
   - [ ] Tạo collection `activity_logs`
   - [ ] Tạo collection `app_configs` với document `global_config`
+  - [x] Script seed assets -> Firestore (`lib/core/utils/firestore_seeder.dart`)
 
 - [ ] **Firestore Security Rules**
   - [ ] Rules cho `users` collection (user chỉ đọc/ghi data của mình)
   - [ ] Rules cho `foods` collection (read-only cho users)
   - [ ] Rules cho `activity_logs` (users chỉ ghi log của mình)
   - [ ] Rules cho `master_data` (read-only)
+  - [x] Draft rules in `docs/firebase_rules_draft.md`
 
 **Dependencies:** Firebase Console, Database schema
 
@@ -186,27 +188,27 @@ Tài liệu này mô tả chi tiết từng phase và module cần hoàn thiện
 
 **Tasks:**
 - [ ] **Food Firestore Service** (đã có, cần hoàn thiện)
-  - [ ] `lib/features/recommendation/data/sources/food_firestore_service.dart`
-    - [ ] `fetchAllFoods()` - Lấy tất cả món ăn
-    - [ ] `fetchFoodsByFilters()` - Lọc theo price, cuisine, etc.
-    - [ ] `fetchFoodById()` - Lấy món theo ID
-    - [ ] `searchFoods()` - Tìm kiếm theo keyword
-    - [ ] Error handling
+  - [x] `lib/features/recommendation/data/sources/food_firestore_service.dart`
+    - [x] `fetchAllFoods()` - Lấy tất cả món ăn
+    - [x] `fetchFoodsByFilters()` - Lọc theo price, cuisine, etc. (client-side)
+    - [x] `fetchFoodById()` - Lấy món theo ID
+    - [x] `searchFoods()` - Tìm kiếm theo keyword (client-side)
+    - [x] Error handling
 
 - [ ] **Food Repository** (đã có, cần hoàn thiện)
-  - [ ] `lib/features/recommendation/data/repositories/food_repository.dart`
-    - [ ] `getAllFoods()` - Lấy từ cache hoặc Firestore
-    - [ ] `getFoodsByFilters()` - Lọc món ăn
-    - [ ] Cache management (Hive)
+  - [x] `lib/features/recommendation/data/repositories/food_repository.dart`
+    - [x] `getAllFoods()` - Lấy từ cache hoặc Firestore (ưu tiên cache TTL, fallback Firestore; fallback cache khi Firestore lỗi)
+    - [x] `getFoodsByFilters()` - Lọc món ăn
+    - [~] Cache management: in-memory TTL (Hive pending)
     - [ ] Sync mechanism (background sync)
-    - [ ] Offline-first approach
+    - [~] Offline-first approach: dùng cache khi offline/Firestore lỗi; còn thiếu write queue
 
 - [ ] **Master Data Repository**
-  - [ ] `lib/core/data/repositories/master_data_repository.dart`
-    - [ ] `getCuisines()`
-    - [ ] `getMealTypes()`
-    - [ ] `getFlavors()`
-    - [ ] `getAllergens()`
+  - [x] `lib/core/data/repositories/master_data_repository.dart`
+    - [x] `getCuisines()`
+    - [x] `getMealTypes()`
+    - [x] `getFlavors()`
+    - [x] `getAllergens()`
     - [ ] Cache master data
 
 **Dependencies:** Firestore, Hive
@@ -227,11 +229,11 @@ Tài liệu này mô tả chi tiết từng phase và module cần hoàn thiện
   - [ ] Run code generation: `flutter pub run build_runner build`
 
 - [ ] **Cache Service**
-  - [ ] `lib/core/services/cache_service.dart`
-    - [ ] `saveFoodsToCache()`
-    - [ ] `getFoodsFromCache()`
-    - [ ] `clearCache()`
-    - [ ] `isCacheValid()` - Check cache expiry
+  - [x] `lib/core/services/cache_service.dart`
+    - [x] `saveFoodsToCache()`
+    - [x] `getFoodsFromCache()`
+    - [x] `clearCache()`
+    - [x] `isCacheValid()` - Check cache expiry (TTL)
     - [ ] Cache versioning
 
 - [ ] **Offline Support**
@@ -248,19 +250,19 @@ Tài liệu này mô tả chi tiết từng phase và module cần hoàn thiện
 ### Module 3.4: Activity Logging
 
 **Tasks:**
-- [ ] **Activity Log Service**
-  - [ ] `lib/core/services/activity_log_service.dart`
-    - [ ] `logRecommendationRequest()` - Log khi user yêu cầu gợi ý
-    - [ ] `logFoodSelection()` - Log khi user chọn món
-    - [ ] `logMapClick()` - Log khi user bấm "Tìm quán"
-    - [ ] Batch write để tối ưu cost
+- [x] **Activity Log Service**
+  - [x] `lib/core/services/activity_log_service.dart`
+    - [x] `logRecommendationRequest()` - Log khi user yêu cầu gợi ý
+    - [x] `logFoodSelection()` - Log khi user chọn món
+    - [x] `logMapClick()` - Log khi user bấm "Tìm quán"
+    - [x] Batch write để tối ưu cost
 
-- [ ] **Analytics Integration**
-  - [ ] Firebase Analytics events
-    - [ ] `recommendation_requested`
-    - [ ] `food_selected`
-    - [ ] `map_opened`
-    - [ ] `onboarding_completed`
+- [x] **Analytics Integration**
+  - [x] Firebase Analytics events
+    - [x] `recommendation_requested`
+    - [x] `food_selected`
+    - [x] `map_opened`
+    - [x] `onboarding_completed`
 
 **Dependencies:** Firestore, Firebase Analytics
 
@@ -378,14 +380,14 @@ Tài liệu này mô tả chi tiết từng phase và module cần hoàn thiện
     - [x] **Context Header:**
       - [x] Dynamic greeting message (theo weather/time)
       - [x] Weather widget (temperature, condition, icon)
-      - [ ] Background thay đổi theo weather
+      - [x] Background thay đổi theo weather
     - [x] **Main Action Button:**
       - [x] Large prominent button "Gợi ý ngay"
       - [ ] Alternative: Slot machine animation
       - [x] Loading state
     - [ ] **Quick Actions:**
-      - [ ] Favorites list (nếu có)
-      - [ ] Recent recommendations
+      - [x] Favorites list (stub)
+      - [x] Recent recommendations
     - [ ] **Navigation:**
       - [ ] Profile button
       - [ ] Settings button
@@ -444,10 +446,10 @@ Tài liệu này mô tả chi tiết từng phase và module cần hoàn thiện
     - [x] **Action Buttons:**
       - [x] Primary: "TÌM QUÁN NGAY" → Deep link to Google Maps
       - [x] Secondary: "Gợi ý khác" → Re-roll
-      - [ ] Tertiary: "Lưu vào yêu thích"
+      - [x] Tertiary: "Lưu vào yêu thích"
     - [x] **Navigation:**
       - [x] Back to dashboard
-      - [ ] Share button (optional)
+      - [x] Share button (optional)
 
 - [x] **Result Widgets**
   - [x] `lib/features/recommendation/presentation/widgets/food_card.dart`
@@ -727,6 +729,8 @@ Tài liệu này mô tả chi tiết từng phase và module cần hoàn thiện
 **Tổng thời gian ước tính:** 9-12 tuần (2.5-3 tháng) để hoàn thiện dự án từ đầu đến cuối.
 
 ---
+
+
 
 ## 🎯 PRIORITY MATRIX
 
