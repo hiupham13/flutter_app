@@ -25,5 +25,37 @@ class UserPreferencesRepository {
       return null;
     }
   }
+
+  Future<void> upsertUserSettings(String userId, UserSettings settings) async {
+    try {
+      await _firestore.collection('users').doc(userId).set(
+        {
+          'settings': settings.toMap(),
+          'updated_at': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+    } catch (e) {
+      AppLogger.error('Failed to upsert user settings: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> updateOnboardingCompletion(String userId) async {
+    try {
+      await _firestore.collection('users').doc(userId).set(
+        {
+          'settings': {
+            'onboarding_completed': true,
+          },
+          'updated_at': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+    } catch (e) {
+      AppLogger.error('Failed to update onboarding completion: $e');
+      rethrow;
+    }
+  }
 }
 

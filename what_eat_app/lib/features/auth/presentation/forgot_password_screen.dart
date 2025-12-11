@@ -4,40 +4,39 @@ import 'package:go_router/go_router.dart';
 
 import '../logic/auth_provider.dart';
 
-class RegisterScreen extends ConsumerStatefulWidget {
-  const RegisterScreen({super.key});
+class ForgotPasswordScreen extends ConsumerStatefulWidget {
+  const ForgotPasswordScreen({super.key});
 
   @override
-  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
+  ConsumerState<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
 }
 
-class _RegisterScreenState extends ConsumerState<RegisterScreen> {
+class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
-  final _passwordCtrl = TextEditingController();
 
   @override
   void dispose() {
     _emailCtrl.dispose();
-    _passwordCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    final auth = ref.read(authControllerProvider.notifier);
-    await auth.signUp(_emailCtrl.text.trim(), _passwordCtrl.text.trim());
+    final notifier = ref.read(authControllerProvider.notifier);
+    await notifier.sendResetEmail(_emailCtrl.text.trim());
     final state = ref.read(authControllerProvider);
     state.whenOrNull(
-      data: (user) {
-        if (user != null && mounted) {
-          context.goNamed('dashboard');
-        }
-      },
       error: (err, _) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(err.toString())),
         );
+      },
+      data: (_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đã gửi email khôi phục.')),
+        );
+        if (mounted) context.goNamed('login');
       },
     );
   }
@@ -48,9 +47,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final isLoading = authState.isLoading;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Đăng ký'),
-      ),
+      appBar: AppBar(title: const Text('Quên mật khẩu')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -64,14 +61,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 validator: (v) =>
                     (v == null || !v.contains('@')) ? 'Email không hợp lệ' : null,
               ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _passwordCtrl,
-                decoration: const InputDecoration(labelText: 'Mật khẩu'),
-                obscureText: true,
-                validator: (v) =>
-                    (v == null || v.length < 6) ? 'Tối thiểu 6 ký tự' : null,
-              ),
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
@@ -83,16 +72,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Tạo tài khoản'),
+                      : const Text('Gửi email khôi phục'),
                 ),
-              ),
-              TextButton(
-                onPressed: () => context.goNamed('login'),
-                child: const Text('Đã có tài khoản? Đăng nhập'),
-              ),
-              TextButton(
-                onPressed: () => context.goNamed('forgot_password'),
-                child: const Text('Quên mật khẩu?'),
               ),
             ],
           ),
