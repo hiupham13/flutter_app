@@ -86,9 +86,67 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       : const Text('Đăng nhập'),
                 ),
               ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.g_mobiledata),
+                  onPressed: isLoading
+                      ? null
+                      : () async {
+                          final notifier = ref.read(authControllerProvider.notifier);
+                          await notifier.signInWithGoogle();
+                          final state = ref.read(authControllerProvider);
+                          state.whenOrNull(
+                            data: (user) {
+                              if (user != null && mounted) {
+                                context.goNamed('dashboard');
+                              }
+                            },
+                            error: (err, _) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(err.toString())),
+                              );
+                            },
+                          );
+                        },
+                  label: const Text('Đăng nhập với Google'),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.facebook),
+                  onPressed: isLoading
+                      ? null
+                      : () async {
+                          final notifier = ref.read(authControllerProvider.notifier);
+                          await notifier.signInWithFacebook();
+                          final state = ref.read(authControllerProvider);
+                          state.whenOrNull(
+                            data: (user) {
+                              if (user != null && mounted) {
+                                context.goNamed('dashboard');
+                              }
+                            },
+                            error: (err, _) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(err.toString())),
+                              );
+                            },
+                          );
+                        },
+                  label: const Text('Đăng nhập với Facebook'),
+                ),
+              ),
               TextButton(
                 onPressed: () => context.goNamed('register'),
                 child: const Text('Chưa có tài khoản? Đăng ký'),
+              ),
+              TextButton(
+                onPressed: () => context.goNamed('forgot_password'),
+                child: const Text('Quên mật khẩu?'),
               ),
             ],
           ),

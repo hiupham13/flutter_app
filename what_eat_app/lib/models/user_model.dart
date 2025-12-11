@@ -81,6 +81,8 @@ class UserSettings {
   final bool isVegetarian;
   final List<String> blacklistedFoods;
   final List<String> excludedAllergens;
+  final List<String> favoriteCuisines;
+  final bool onboardingCompleted;
 
   UserSettings({
     required this.defaultBudget,
@@ -88,6 +90,8 @@ class UserSettings {
     required this.isVegetarian,
     required this.blacklistedFoods,
     required this.excludedAllergens,
+    required this.favoriteCuisines,
+    required this.onboardingCompleted,
   });
 
   factory UserSettings.fromMap(Map<String, dynamic> map) {
@@ -97,6 +101,8 @@ class UserSettings {
       isVegetarian: map['is_vegetarian'] as bool? ?? false,
       blacklistedFoods: List<String>.from(map['blacklisted_foods'] as List? ?? []),
       excludedAllergens: List<String>.from(map['excluded_allergens'] as List? ?? []),
+      favoriteCuisines: List<String>.from(map['favorite_cuisines'] as List? ?? []),
+      onboardingCompleted: map['onboarding_completed'] as bool? ?? false,
     );
   }
 
@@ -107,6 +113,8 @@ class UserSettings {
       'is_vegetarian': isVegetarian,
       'blacklisted_foods': blacklistedFoods,
       'excluded_allergens': excludedAllergens,
+      'favorite_cuisines': favoriteCuisines,
+      'onboarding_completed': onboardingCompleted,
     };
   }
 }

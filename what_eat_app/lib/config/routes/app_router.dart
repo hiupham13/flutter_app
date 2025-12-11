@@ -5,19 +5,25 @@ import '../../models/food_model.dart';
 import '../../features/recommendation/logic/scoring_engine.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
+import '../../features/auth/presentation/forgot_password_screen.dart';
 import '../../features/dashboard/presentation/dashboard_screen.dart';
 import '../../features/recommendation/presentation/result_screen.dart';
+import '../../features/onboarding/onboarding_screen.dart';
+import '../../features/favorites/presentation/favorites_screen.dart';
+import '../../features/user/data/user_preferences_repository.dart';
 import 'go_router_refresh_stream.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final auth = FirebaseAuth.instance;
+  final prefsRepo = UserPreferencesRepository();
 
   return GoRouter(
     initialLocation: '/dashboard',
     refreshListenable: GoRouterRefreshStream(auth.authStateChanges()),
-    redirect: (context, state) {
+    redirect: (context, state) async {
       final user = auth.currentUser;
       final loggingIn = state.matchedLocation.startsWith('/auth');
+      final inOnboarding = state.matchedLocation.startsWith('/onboarding');
 
       if (user == null && !loggingIn) {
         return '/auth/login';
@@ -25,6 +31,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (user != null && loggingIn) {
         return '/dashboard';
       }
+
+      if (user != null) {
+        final settings = await prefsRepo.fetchUserSettings(user.uid);
+        final done = settings?.onboardingCompleted ?? false;
+
+        if (!done && !inOnboarding) {
+          return '/onboarding';
+        }
+        if (done && inOnboarding) {
+          return '/dashboard';
+        }
+      }
+
       return null;
     },
     routes: [
@@ -32,6 +51,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/dashboard',
         name: 'dashboard',
         builder: (context, state) => const DashboardScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        name: 'onboarding',
+        builder: (context, state) => const OnboardingScreen(),
       ),
       GoRoute(
         path: '/auth/login',
@@ -42,6 +66,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/auth/register',
         name: 'register',
         builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: '/auth/forgot',
+        name: 'forgot_password',
+        builder: (context, state) => const ForgotPasswordScreen(),
       ),
       GoRoute(
         path: '/result',
@@ -66,6 +95,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             context: ctx,
           );
         },
+      ),
+      GoRoute(
+        path: '/favorites',
+        name: 'favorites',
+        builder: (context, state) => const FavoritesScreen(),
       ),
     ],
   );
