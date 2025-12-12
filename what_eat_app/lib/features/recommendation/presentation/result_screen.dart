@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:what_eat_app/config/theme/style_tokens.dart';
+import 'package:what_eat_app/core/constants/app_colors.dart';
+import 'package:what_eat_app/core/widgets/primary_button.dart';
+import 'package:what_eat_app/core/widgets/price_badge.dart';
 import '../../../../models/food_model.dart';
 import '../../../../core/services/deep_link_service.dart';
 import '../../../../core/services/copywriting_service.dart';
@@ -12,12 +16,12 @@ import '../logic/scoring_engine.dart';
 
 class ResultScreen extends ConsumerWidget {
   final FoodModel food;
-  final RecommendationContext context;
+  final RecommendationContext recContext;
 
   const ResultScreen({
     super.key,
     required this.food,
-    required this.context,
+    required this.recContext,
   });
 
   @override
@@ -27,6 +31,7 @@ class ResultScreen extends ConsumerWidget {
     final recommendationState = ref.watch(recommendationProvider);
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Gợi ý món ăn'),
         actions: [
@@ -44,71 +49,53 @@ class ResultScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Food Image
             _buildFoodImage(),
-            
-            // Food Info
             Padding(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(AppSpacing.xl),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Food Name
                   Text(
                     food.name,
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: Theme.of(context).textTheme.displaySmall,
                   ),
-                  const SizedBox(height: 8),
-
-                  // Price Badge
-                  _buildPriceBadge(food.priceSegment),
-                  const SizedBox(height: 16),
-
-                  // Description
+                  const SizedBox(height: AppSpacing.xs),
+                  PriceBadge(level: _mapPrice(food.priceSegment)),
+                  const SizedBox(height: AppSpacing.lg),
                   if (food.description.isNotEmpty) ...[
                     Text(
                       food.description,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey[700],
-                        height: 1.5,
-                      ),
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            color: AppColors.textSecondary,
+                            height: 1.5,
+                          ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpacing.xl),
                   ],
-
-                  // Recommendation Reason
                   FutureBuilder<String>(
                     future: copywritingService.getRecommendationReason(
-                      weather: this.context.weather,
-                      companion: this.context.companion,
-                      mood: this.context.mood,
+                      weather: recContext.weather,
+                      companion: recContext.companion,
+                      mood: recContext.mood,
                     ),
                     builder: (context, snapshot) {
                       if (snapshot.hasData) {
-                        return _buildReasonCard(snapshot.data!);
+                        return _buildReasonCard(snapshot.data!, context);
                       }
                       return const SizedBox.shrink();
                     },
                   ),
-                  const SizedBox(height: 24),
-
-                  // Joke Message
+                  const SizedBox(height: AppSpacing.lg),
                   FutureBuilder<String>(
                     future: copywritingService.getJokeMessage(),
                     builder: (context, snapshot) {
                       if (snapshot.hasData) {
-                        return _buildJokeCard(snapshot.data!);
+                        return _buildJokeCard(snapshot.data!, context);
                       }
                       return const SizedBox.shrink();
                     },
                   ),
-                  const SizedBox(height: 32),
-
-                  // Action Buttons
+                  const SizedBox(height: AppSpacing.xl),
                   _buildActionButtons(
                     context,
                     ref,
@@ -127,75 +114,59 @@ class ResultScreen extends ConsumerWidget {
   Widget _buildFoodImage() {
     final imageUrl = _firstValidImage(food.images);
 
-    return Container(
-      height: 300,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.grey[200],
-        image: imageUrl != null
-            ? DecorationImage(
-                image: NetworkImage(imageUrl),
-                fit: BoxFit.cover,
-                onError: (_, __) {},
-              )
-            : null,
-      ),
-      child: imageUrl == null
-          ? const Center(
-              child: Icon(
-                Icons.restaurant,
-                size: 80,
-                color: Colors.grey,
-              ),
-            )
-          : null,
-    );
-  }
-
-  Widget _buildPriceBadge(int priceSegment) {
-    final labels = ['Cuối tháng', 'Bình dân', 'Sang chảnh'];
-    final colors = [Colors.green, Colors.orange, Colors.purple];
-    
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: colors[priceSegment - 1].withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: colors[priceSegment - 1],
-          width: 1,
+    return Hero(
+      tag: food.id,
+      child: ClipRRect(
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(AppRadius.lg),
+          bottomRight: Radius.circular(AppRadius.lg),
         ),
-      ),
-      child: Text(
-        labels[priceSegment - 1],
-        style: TextStyle(
-          color: colors[priceSegment - 1],
-          fontWeight: FontWeight.w600,
-          fontSize: 12,
+        child: Container(
+          height: 320,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: AppColors.surfaceMuted,
+            image: imageUrl != null
+                ? DecorationImage(
+                    image: NetworkImage(imageUrl),
+                    fit: BoxFit.cover,
+                    onError: (_, __) {},
+                  )
+                : null,
+          ),
+          child: imageUrl == null
+              ? const Center(
+                  child: Icon(
+                    Icons.restaurant,
+                    size: 80,
+                    color: AppColors.textSecondary,
+                  ),
+                )
+              : null,
         ),
       ),
     );
   }
 
-  Widget _buildReasonCard(String reason) {
+  Widget _buildReasonCard(String reason, BuildContext ctx) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: Colors.blue[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue[200]!),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.border),
+        boxShadow: const [AppShadows.soft],
       ),
       child: Row(
         children: [
-          const Icon(Icons.lightbulb, color: Colors.blue),
-          const SizedBox(width: 12),
+          const Icon(Icons.lightbulb, color: AppColors.primary),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Text(
-              '💡 $reason',
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.blue,
-              ),
+              reason,
+              style: Theme.of(ctx).textTheme.bodyLarge?.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
             ),
           ),
         ],
@@ -203,26 +174,26 @@ class ResultScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildJokeCard(String joke) {
+  Widget _buildJokeCard(String joke, BuildContext ctx) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: Colors.orange[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.orange[200]!),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.border),
+        boxShadow: const [AppShadows.soft],
       ),
       child: Row(
         children: [
-          const Icon(Icons.sentiment_satisfied, color: Colors.orange),
-          const SizedBox(width: 12),
+          const Icon(Icons.sentiment_satisfied, color: AppColors.secondary),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Text(
               joke,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.orange,
-                fontStyle: FontStyle.italic,
-              ),
+              style: Theme.of(ctx).textTheme.bodyLarge?.copyWith(
+                    color: AppColors.textPrimary,
+                    fontStyle: FontStyle.italic,
+                  ),
             ),
           ),
         ],
@@ -238,85 +209,53 @@ class ResultScreen extends ConsumerWidget {
   ) {
     return Column(
       children: [
-        // Primary Button: Tìm quán
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            onPressed: () async {
-              final userId = FirebaseAuth.instance.currentUser?.uid;
+        PrimaryButton(
+          label: 'Tìm quán ngay',
+          leadingIcon: Icons.map_outlined,
+          onPressed: () async {
+            final userId = FirebaseAuth.instance.currentUser?.uid;
 
-              if (userId != null) {
-                // Best-effort logging; errors are handled inside services
-                final activityLogService =
-                    ref.read(activityLogServiceProvider);
-                final analyticsService = ref.read(analyticsServiceProvider);
+            if (userId != null) {
+              final activityLogService = ref.read(activityLogServiceProvider);
+              final analyticsService = ref.read(analyticsServiceProvider);
 
-                await Future.wait([
-                  activityLogService.logMapClick(
-                    userId: userId,
-                    food: food,
-                  ),
-                  analyticsService.logMapOpened(food),
-                ]);
+              await Future.wait([
+                activityLogService.logMapClick(
+                  userId: userId,
+                  food: food,
+                ),
+                analyticsService.logMapOpened(food),
+              ]);
 
-                // Also mark food as selected
-                await ref
-                    .read(recommendationProvider.notifier)
-                    .selectFood(food.id);
-              }
+              await ref.read(recommendationProvider.notifier).selectFood(food.id);
+            }
 
-              final success = await deepLinkService.openGoogleMaps(food.mapQuery);
-              if (!success && context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Không thể mở Google Maps'),
-                  ),
-                );
-              }
-            },
-            icon: const Icon(Icons.map),
-            label: const Text('TÌM QUÁN NGAY'),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              backgroundColor: Colors.orange,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
+            final success = await deepLinkService.openGoogleMaps(food.mapQuery);
+            if (!success && context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Không thể mở Google Maps'),
+                ),
+              );
+            }
+          },
         ),
-        const SizedBox(height: 12),
-
-        // Secondary Button: Gợi ý khác
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: state.recommendedFoods.length > 1
-                ? () {
-                    ref.read(recommendationProvider.notifier).nextFood();
-                  }
-                : null,
-            icon: const Icon(Icons.refresh),
-            label: const Text('Gợi ý khác'),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
+        const SizedBox(height: AppSpacing.md),
+        PrimaryButton(
+          label: 'Gợi ý khác',
+          leadingIcon: Icons.casino,
+          variant: PrimaryButtonVariant.tonal,
+          onPressed: state.recommendedFoods.length > 1
+              ? () => ref.read(recommendationProvider.notifier).nextFood()
+              : null,
         ),
-        const SizedBox(height: 12),
-
-        // Tertiary: Lưu vào yêu thích (stub)
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: null,
-            icon: const Icon(Icons.favorite_border),
-            label: const Text('Lưu vào yêu thích (sắp có)'),
-          ),
+        const SizedBox(height: AppSpacing.sm),
+        TextButton.icon(
+          onPressed: () {
+            // TODO: Save to favorites
+          },
+          icon: const Icon(Icons.favorite_border),
+          label: const Text('Lưu vào yêu thích'),
         ),
       ],
     );
@@ -329,5 +268,17 @@ class ResultScreen extends ConsumerWidget {
       }
     }
     return null;
+  }
+
+  PriceLevel _mapPrice(int segment) {
+    switch (segment) {
+      case 1:
+        return PriceLevel.low;
+      case 3:
+        return PriceLevel.high;
+      case 2:
+      default:
+        return PriceLevel.medium;
+    }
   }
 }
