@@ -1,34 +1,35 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Primary Colors
-  static const Color primary = Color(0xFF6200EE);
-  static const Color primaryDark = Color(0xFF3700B3);
-  static const Color primaryLight = Color(0xFFBB86FC);
+  // Primary (Teal)
+  static const Color primary = Color(0xFF14B8A6);
+  static const Color primaryDark = Color(0xFF0F766E);
+  static const Color primaryLight = Color(0xFF8BE3D8);
 
-  // Secondary Colors
-  static const Color secondary = Color(0xFF03DAC6);
-  static const Color secondaryDark = Color(0xFF018786);
-  static const Color secondaryLight = Color(0xFF66FFF9);
+  // Accent (Orange)
+  static const Color secondary = Color(0xFFFF7A45);
+  static const Color secondaryDark = Color(0xFFCC6237);
+  static const Color secondaryLight = Color(0xFFFFC7A1);
 
-  // Background Colors
-  static const Color background = Color(0xFFF5F5F5);
+  // Background & Surfaces
+  static const Color background = Color(0xFFF6F9FB);
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceDark = Color(0xFF121212);
+  static const Color surfaceMuted = Color(0xFFF0F4F8);
+  static const Color surfaceDark = Color(0xFF0F172A);
+
+  // Border & Divider
+  static const Color border = Color(0xFFD8DFE8);
+  static const Color borderStrong = Color(0xFFCBD5E1);
 
   // Text Colors
-  static const Color textPrimary = Color(0xFF212121);
-  static const Color textSecondary = Color(0xFF757575);
+  static const Color textPrimary = Color(0xFF0F172A);
+  static const Color textSecondary = Color(0xFF475467);
   static const Color textOnPrimary = Color(0xFFFFFFFF);
 
-  // Error & Success
-  static const Color error = Color(0xFFB00020);
-  static const Color success = Color(0xFF4CAF50);
-  static const Color warning = Color(0xFFFF9800);
+  // Status
+  static const Color error = Color(0xFFEF4444);
+  static const Color success = Color(0xFF22C55E);
+  static const Color warning = Color(0xFFF59E0B);
 
-  // Food-related Colors
-  static const Color foodOrange = Color(0xFFFF6B35);
-  static const Color foodRed = Color(0xFFE63946);
-  static const Color foodGreen = Color(0xFF06A77D);
 }
 
