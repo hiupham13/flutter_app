@@ -383,14 +383,14 @@ Tài liệu này mô tả chi tiết từng phase và module cần hoàn thiện
       - [x] Background thay đổi theo weather
     - [x] **Main Action Button:**
       - [x] Large prominent button "Gợi ý ngay"
-      - [ ] Alternative: Slot machine animation
+      - [x] Alternative: Slot machine animation
       - [x] Loading state
     - [ ] **Quick Actions:**
       - [x] Favorites list (stub)
       - [x] Recent recommendations
-    - [ ] **Navigation:**
-      - [ ] Profile button
-      - [ ] Settings button
+    - [x] **Navigation:**
+      - [x] Profile button
+      - [x] Settings button
 
 - [x] **Dashboard Widgets**
   - [x] `lib/features/dashboard/presentation/widgets/weather_card.dart`
@@ -465,20 +465,20 @@ Tài liệu này mô tả chi tiết từng phase và module cần hoàn thiện
 ### Module 5.4: Core UI Components
 
 **Tasks:**
-- [ ] **Enhanced Core Widgets**
-  - [ ] `lib/core/widgets/primary_button.dart` (nếu chưa có)
-    - [ ] Loading state
-    - [ ] Disabled state
-    - [ ] Different sizes
-  - [ ] `lib/core/widgets/custom_textfield.dart` (nếu chưa có)
-  - [ ] `lib/core/widgets/loading_indicator.dart` (nếu chưa có)
-  - [ ] `lib/core/widgets/error_widget.dart`
-  - [ ] `lib/core/widgets/empty_state_widget.dart`
+- [x] **Enhanced Core Widgets**
+  - [x] `lib/core/widgets/primary_button.dart`
+    - [x] Loading state
+    - [x] Disabled state
+    - [x] Different sizes
+  - [x] `lib/core/widgets/custom_textfield.dart`
+  - [x] `lib/core/widgets/loading_indicator.dart`
+  - [x] `lib/core/widgets/error_widget.dart`
+  - [x] `lib/core/widgets/empty_state_widget.dart`
 
-- [ ] **Food-related Widgets**
-  - [ ] `lib/core/widgets/food_image_card.dart`
-  - [ ] `lib/core/widgets/price_badge.dart`
-  - [ ] `lib/core/widgets/food_tags_chip.dart`
+- [x] **Food-related Widgets**
+  - [x] `lib/core/widgets/food_image_card.dart`
+  - [x] `lib/core/widgets/price_badge.dart`
+  - [x] `lib/core/widgets/food_tags_chip.dart`
 
 **Timeline:** 2-3 ngày
 
@@ -487,14 +487,14 @@ Tài liệu này mô tả chi tiết từng phase và module cần hoàn thiện
 ### Module 5.5: Animations & Transitions
 
 **Tasks:**
-- [ ] **Page Transitions**
-  - [ ] Custom route transitions
-  - [ ] Hero animations cho food images
-  - [ ] Slide transitions
+- [x] **Page Transitions**
+  - [x] Custom route transitions
+  - [x] Hero animations cho food images
+  - [x] Slide transitions
 
 - [ ] **Micro-interactions**
-  - [ ] Button press animations
-  - [ ] Loading shimmer effects
+  - [x] Button press animations
+  - [x] Loading shimmer effects
   - [ ] Success/error feedback animations
 
 **Timeline:** 2-3 ngày
