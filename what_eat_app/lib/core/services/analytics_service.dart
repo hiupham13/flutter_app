@@ -47,6 +47,22 @@ class AnalyticsService {
     );
   }
 
+  Future<void> logFoodShared({
+    required FoodModel food,
+    required String source,
+  }) async {
+    await _analytics.logEvent(
+      name: 'food_shared',
+      parameters: {
+        'food_id': food.id,
+        'food_name': food.name,
+        'cuisine_id': food.cuisineId,
+        'price_segment': food.priceSegment,
+        'source': source,
+      },
+    );
+  }
+
   Future<void> logOnboardingCompleted({
     required bool skipped,
     int? defaultBudget,

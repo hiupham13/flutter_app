@@ -10,7 +10,7 @@ FoodModel buildFood({
   String mealTypeId = 'soup',
   List<String> searchKeywords = const [],
 }) {
-  return FoodModel(
+  return FoodModel.create(
     id: id,
     name: id,
     searchKeywords: searchKeywords,

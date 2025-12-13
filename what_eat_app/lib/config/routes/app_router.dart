@@ -7,10 +7,10 @@ import '../../features/recommendation/logic/scoring_engine.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/presentation/forgot_password_screen.dart';
-import '../../features/dashboard/presentation/dashboard_screen.dart';
+import '../../features/main/main_screen.dart';
 import '../../features/recommendation/presentation/result_screen.dart';
 import '../../features/onboarding/onboarding_screen.dart';
-import '../../features/favorites/presentation/favorites_screen.dart';
+import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/user/data/user_preferences_repository.dart';
 import '../theme/style_tokens.dart';
 import 'go_router_refresh_stream.dart';
@@ -52,11 +52,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/dashboard',
         name: 'dashboard',
-        pageBuilder: (context, state) => _buildSlidePage(
-          state: state,
-          child: const DashboardScreen(),
-          offset: const Offset(0, 0.03),
-        ),
+        pageBuilder: (context, state) {
+          // Support query parameter for tab selection: /dashboard?tab=0,1,2,3,4
+          final tabParam = state.uri.queryParameters['tab'];
+          final initialIndex = int.tryParse(tabParam ?? '0') ?? 0;
+          
+          return _buildSlidePage(
+            state: state,
+            child: MainScreen(initialIndex: initialIndex),
+            offset: const Offset(0, 0.03),
+          );
+        },
       ),
       GoRoute(
         path: '/onboarding',
@@ -101,7 +107,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           if (food == null) {
             return _buildSlidePage(
               state: state,
-              child: const DashboardScreen(),
+              child: const MainScreen(initialIndex: 0),
               offset: const Offset(-0.06, 0),
             );
           }
@@ -122,11 +128,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
-        path: '/favorites',
-        name: 'favorites',
+        path: '/settings',
+        name: 'settings',
         pageBuilder: (context, state) => _buildSlidePage(
           state: state,
-          child: const FavoritesScreen(),
+          child: const SettingsScreen(),
           offset: const Offset(0.06, 0),
         ),
       ),

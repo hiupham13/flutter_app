@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:what_eat_app/config/theme/style_tokens.dart';
 import 'package:what_eat_app/core/constants/app_colors.dart';
 import 'package:what_eat_app/core/widgets/primary_button.dart';
 import 'package:what_eat_app/core/widgets/price_badge.dart';
+import 'package:what_eat_app/core/widgets/cached_food_image.dart';
 import '../../../../models/food_model.dart';
 import '../../../../core/services/deep_link_service.dart';
 import '../../../../core/services/copywriting_service.dart';
+import '../../../../core/services/share_service.dart';
 import '../../../../core/services/activity_log_service.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../logic/recommendation_provider.dart';
@@ -27,6 +28,8 @@ class ResultScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final copywritingService = ref.watch(copywritingServiceProvider);
+    final analyticsService = ref.watch(analyticsServiceProvider);
+    final shareService = ShareService(analyticsService: analyticsService);
     final deepLinkService = DeepLinkService();
     final recommendationState = ref.watch(recommendationProvider);
 
@@ -37,11 +40,7 @@ class ResultScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.share),
-            onPressed: () {
-              final text =
-                  'Thử món ${food.name} nhé? Tìm quán: https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(food.mapQuery)}';
-              Share.share(text, subject: 'Hôm Nay Ăn Gì?');
-            },
+            onPressed: () => _handleShare(context, shareService, copywritingService),
           ),
         ],
       ),
@@ -116,33 +115,14 @@ class ResultScreen extends ConsumerWidget {
 
     return Hero(
       tag: food.id,
-      child: ClipRRect(
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(AppRadius.lg),
-          bottomRight: Radius.circular(AppRadius.lg),
-        ),
-        child: Container(
+      child: SizedBox(
+        height: 320,
+        width: double.infinity,
+        child: CachedFoodImage(
+          imageUrl: imageUrl ?? '',
           height: 320,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: AppColors.surfaceMuted,
-            image: imageUrl != null
-                ? DecorationImage(
-                    image: NetworkImage(imageUrl),
-                    fit: BoxFit.cover,
-                    onError: (_, __) {},
-                  )
-                : null,
-          ),
-          child: imageUrl == null
-              ? const Center(
-                  child: Icon(
-                    Icons.restaurant,
-                    size: 80,
-                    color: AppColors.textSecondary,
-                  ),
-                )
-              : null,
+          fit: BoxFit.cover,
+          borderRadius: AppRadius.lg,
         ),
       ),
     );
@@ -258,6 +238,28 @@ class ResultScreen extends ConsumerWidget {
           label: const Text('Lưu vào yêu thích'),
         ),
       ],
+    );
+  }
+
+  Future<void> _handleShare(
+    BuildContext context,
+    ShareService shareService,
+    CopywritingService copywritingService,
+  ) async {
+    // Get recommendation reason for richer share text
+    final reason = await copywritingService.getRecommendationReason(
+      weather: recContext.weather,
+      companion: recContext.companion,
+      mood: recContext.mood,
+    );
+
+    // Share with full context
+    await shareService.shareFoodWithContext(
+      food: food,
+      weather: recContext.weather?.description,
+      companion: recContext.companion,
+      mood: recContext.mood,
+      reason: reason,
     );
   }
 

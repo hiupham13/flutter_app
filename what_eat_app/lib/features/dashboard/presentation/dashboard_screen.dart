@@ -186,33 +186,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Hôm Nay Ăn Gì?'),
+        centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             tooltip: 'Cài đặt',
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Cài đặt sẽ sớm có')),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.person_outline),
-            tooltip: 'Hồ sơ',
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Hồ sơ sẽ sớm có')),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await ref.read(authControllerProvider.notifier).signOut();
-              if (mounted) {
-                context.goNamed('login');
-              }
-            },
+            onPressed: () => context.pushNamed('settings'),
           ),
         ],
       ),
@@ -469,37 +448,61 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Tác vụ nhanh',
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
-        const SizedBox(height: AppSpacing.md),
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(
-              child: _QuickCard(
-                icon: Icons.favorite_border,
-                title: 'Yêu thích',
-                subtitle: 'Lưu & xem món yêu thích',
-                onTap: () => context.pushNamed('favorites'),
-              ),
+            Text(
+              'Bối cảnh hiện tại',
+              style: Theme.of(context).textTheme.titleMedium,
             ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: _QuickCard(
-                icon: Icons.refresh,
-                title: 'Làm mới',
-                subtitle: 'Cập nhật thời tiết/bối cảnh',
-                onTap: () async {
-                  await _loadContext();
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Đã làm mới bối cảnh')),
-                  );
-                },
+            TextButton.icon(
+              onPressed: () async {
+                await _loadContext();
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Đã làm mới bối cảnh'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('Làm mới'),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.primary,
               ),
             ),
           ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Container(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: const Icon(Icons.info_outline, color: AppColors.primary),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Text(
+                  'Kéo xuống để làm mới hoặc dùng thanh điều hướng bên dưới để khám phá thêm.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -539,34 +542,38 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           style: Theme.of(context).textTheme.titleMedium,
         ),
         const SizedBox(height: AppSpacing.md),
-        ...items.map(
-          (food) => Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.md),
-            child: FoodImageCard(
-              imageUrl: food.images.isNotEmpty ? food.images.first : '',
-              title: food.name,
-              subtitle: food.cuisineId,
-              priceBadge: PriceBadge(level: _mapPrice(food.priceSegment)),
-              tags: [
-                food.mealTypeId,
-                ...food.flavorProfile.take(2),
-              ],
-              heroTag: food.id,
-              onTap: () {
-                final ctx = RecommendationContext(
-                  budget: food.priceSegment,
-                  companion: 'alone',
-                );
-                context.pushNamed(
-                  'result',
-                  extra: {
-                    'food': food,
-                    'context': ctx,
-                  },
-                );
-              },
-            ),
-          ),
+        ...items.asMap().entries.map(
+          (entry) {
+            final index = entry.key;
+            final food = entry.value;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.md),
+              child: FoodImageCard(
+                imageUrl: food.images.isNotEmpty ? food.images.first : '',
+                title: food.name,
+                subtitle: food.cuisineId,
+                priceBadge: PriceBadge(level: _mapPrice(food.priceSegment)),
+                tags: [
+                  food.mealTypeId,
+                  ...food.flavorProfile.take(2),
+                ],
+                heroTag: 'history_${food.id}_$index',
+                onTap: () {
+                  final ctx = RecommendationContext(
+                    budget: food.priceSegment,
+                    companion: 'alone',
+                  );
+                  context.pushNamed(
+                    'result',
+                    extra: {
+                      'food': food,
+                      'context': ctx,
+                    },
+                  );
+                },
+              ),
+            );
+          },
         ),
       ],
     );
@@ -612,62 +619,3 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 }
 
-class _QuickCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  const _QuickCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          border: Border.all(color: AppColors.border),
-          boxShadow: const [AppShadows.card],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.sm),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(AppRadius.md),
-              ),
-              child: Icon(icon, color: AppColors.primary),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    subtitle,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right, color: AppColors.textSecondary),
-          ],
-        ),
-      ),
-    );
-  }
-}

@@ -1,13 +1,36 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:hive/hive.dart';
 
-class UserModel {
+part 'user_model.g.dart';
+
+@HiveType(typeId: 1)
+class UserModel extends HiveObject {
+  @HiveField(0)
   final String uid;
+  
+  @HiveField(1)
   final UserInfo info;
+  
+  @HiveField(2)
   final UserSettings settings;
+  
+  @HiveField(3)
   final UserStats stats;
+  
+  @HiveField(4)
   final String? fcmToken;
-  final DateTime createdAt;
-  final DateTime? lastLogin;
+  
+  @HiveField(5)
+  final int createdAtMillis;
+  
+  @HiveField(6)
+  final int? lastLoginMillis;
+  
+  // Computed properties
+  DateTime get createdAt => DateTime.fromMillisecondsSinceEpoch(createdAtMillis);
+  DateTime? get lastLogin => lastLoginMillis != null
+      ? DateTime.fromMillisecondsSinceEpoch(lastLoginMillis!)
+      : null;
 
   UserModel({
     required this.uid,
@@ -15,22 +38,69 @@ class UserModel {
     required this.settings,
     required this.stats,
     this.fcmToken,
-    required this.createdAt,
-    this.lastLogin,
+    required this.createdAtMillis,
+    this.lastLoginMillis,
   });
+  
+  // Factory constructor for easy creation
+  factory UserModel.create({
+    required String uid,
+    required UserInfo info,
+    required UserSettings settings,
+    required UserStats stats,
+    String? fcmToken,
+    required DateTime createdAt,
+    DateTime? lastLogin,
+  }) {
+    return UserModel(
+      uid: uid,
+      info: info,
+      settings: settings,
+      stats: stats,
+      fcmToken: fcmToken,
+      createdAtMillis: createdAt.millisecondsSinceEpoch,
+      lastLoginMillis: lastLogin?.millisecondsSinceEpoch,
+    );
+  }
 
   factory UserModel.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+    final data = doc.data() as Map<String, dynamic>?;
+    
+    if (data == null) {
+      throw Exception('User document data is null');
+    }
+    
+    // Handle created_at with fallback to now
+    final createdAt = data['created_at'] != null
+        ? (data['created_at'] as Timestamp).toDate()
+        : DateTime.now();
+    
+    // Handle last_login - can be null
+    final lastLogin = data['last_login'] != null
+        ? (data['last_login'] as Timestamp).toDate()
+        : null;
+    
+    // Safe cast for nested maps with fallbacks
+    final infoData = data['info'] is Map<String, dynamic>
+        ? data['info'] as Map<String, dynamic>
+        : <String, dynamic>{};
+    
+    final settingsData = data['settings'] is Map<String, dynamic>
+        ? data['settings'] as Map<String, dynamic>
+        : <String, dynamic>{};
+    
+    final statsData = data['stats'] is Map<String, dynamic>
+        ? data['stats'] as Map<String, dynamic>
+        : <String, dynamic>{};
+    
     return UserModel(
       uid: doc.id,
-      info: UserInfo.fromMap(data['info'] as Map<String, dynamic>),
-      settings: UserSettings.fromMap(data['settings'] as Map<String, dynamic>),
-      stats: UserStats.fromMap(data['stats'] as Map<String, dynamic>),
+      info: UserInfo.fromMap(infoData),
+      settings: UserSettings.fromMap(settingsData),
+      stats: UserStats.fromMap(statsData),
       fcmToken: data['fcm_token'] as String?,
-      createdAt: (data['created_at'] as Timestamp).toDate(),
-      lastLogin: data['last_login'] != null
-          ? (data['last_login'] as Timestamp).toDate()
-          : null,
+      createdAtMillis: createdAt.millisecondsSinceEpoch,
+      lastLoginMillis: lastLogin?.millisecondsSinceEpoch,
     );
   }
 
@@ -47,9 +117,15 @@ class UserModel {
   }
 }
 
+@HiveType(typeId: 2)
 class UserInfo {
+  @HiveField(0)
   final String displayName;
+  
+  @HiveField(1)
   final String email;
+  
+  @HiveField(2)
   final String? avatarUrl;
 
   UserInfo({
@@ -60,8 +136,8 @@ class UserInfo {
 
   factory UserInfo.fromMap(Map<String, dynamic> map) {
     return UserInfo(
-      displayName: map['display_name'] as String,
-      email: map['email'] as String,
+      displayName: map['display_name'] as String? ?? 'User',
+      email: map['email'] as String? ?? 'no-email@example.com',
       avatarUrl: map['avatar_url'] as String?,
     );
   }
@@ -75,13 +151,27 @@ class UserInfo {
   }
 }
 
+@HiveType(typeId: 3)
 class UserSettings {
+  @HiveField(0)
   final int defaultBudget; // 1: Cheap, 2: Mid, 3: High
+  
+  @HiveField(1)
   final int spiceTolerance; // 0-5
+  
+  @HiveField(2)
   final bool isVegetarian;
+  
+  @HiveField(3)
   final List<String> blacklistedFoods;
+  
+  @HiveField(4)
   final List<String> excludedAllergens;
+  
+  @HiveField(5)
   final List<String> favoriteCuisines;
+  
+  @HiveField(6)
   final bool onboardingCompleted;
 
   UserSettings({
@@ -119,8 +209,12 @@ class UserSettings {
   }
 }
 
+@HiveType(typeId: 4)
 class UserStats {
+  @HiveField(0)
   final int streakDays;
+  
+  @HiveField(1)
   final int totalPicked;
 
   UserStats({

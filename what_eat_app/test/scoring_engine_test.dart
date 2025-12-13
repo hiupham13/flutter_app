@@ -14,7 +14,7 @@ void main() {
     String cuisineId = 'vn',
     Map<String, double> contextScores = const {},
   }) {
-    return FoodModel(
+    return FoodModel.create(
       id: id,
       name: id,
       searchKeywords: const [],
