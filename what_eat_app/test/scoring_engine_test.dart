@@ -37,24 +37,32 @@ void main() {
     );
   }
 
-  test('Hard filter: allergen should zero the score', () {
-    final food = buildFood(allergenTags: ['peanut']);
+  test('Hard filter: allergen should be filtered out', () {
+    final foodWithAllergen = buildFood(id: 'peanut_dish', allergenTags: ['peanut']);
+    final foodSafe = buildFood(id: 'safe_dish', allergenTags: []);
+    
     final ctx = RecommendationContext(
       budget: 2,
       companion: 'alone',
       excludedAllergens: const ['peanut'],
     );
 
-    final score = engine.calculateScore(food, ctx);
-    expect(score, 0);
+    // Test via getTopFoods - food with allergen should be filtered out
+    final results = engine.getTopFoods([foodWithAllergen, foodSafe], ctx, 5);
+    expect(results.length, 1);
+    expect(results.first.id, 'safe_dish');
   });
 
   test('Budget filter removes items far above budget', () {
-    final food = buildFood(priceSegment: 4);
+    final expensiveFood = buildFood(id: 'expensive', priceSegment: 4);
+    final affordableFood = buildFood(id: 'affordable', priceSegment: 2);
+    
     final ctx = RecommendationContext(budget: 1, companion: 'alone');
 
-    final score = engine.calculateScore(food, ctx);
-    expect(score, 0);
+    // Test via getTopFoods - expensive food should be filtered out
+    final results = engine.getTopFoods([expensiveFood, affordableFood], ctx, 5);
+    expect(results.length, 1);
+    expect(results.first.id, 'affordable');
   });
 
   test('Favorite cuisine boosts score and ranks higher', () {

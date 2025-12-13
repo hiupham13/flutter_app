@@ -103,8 +103,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           final extra = state.extra as Map<String, dynamic>?;
           final food = extra?['food'] as FoodModel?;
           final recommendationContext = extra?['context'] as RecommendationContext?;
+          final isLoading = extra?['isLoading'] as bool? ?? false;
           
-          if (food == null) {
+          // ⚡ Support optimistic navigation - navigate even without food
+          if (recommendationContext == null) {
             return _buildSlidePage(
               state: state,
               child: const MainScreen(initialIndex: 0),
@@ -112,17 +114,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             );
           }
           
-          // Use provided context or create default
-          final ctx = recommendationContext ?? RecommendationContext(
-            budget: 2,
-            companion: 'alone',
-          );
-          
           return _buildSlideUpPage(
             state: state,
             child: ResultScreen(
-              food: food,
-              recContext: ctx,
+              food: food, // Can be null for loading state
+              recContext: recommendationContext,
+              isLoading: isLoading, // Pass loading flag
             ),
           );
         },

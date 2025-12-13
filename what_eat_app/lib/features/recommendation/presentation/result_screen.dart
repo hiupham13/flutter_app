@@ -6,6 +6,7 @@ import 'package:what_eat_app/core/constants/app_colors.dart';
 import 'package:what_eat_app/core/widgets/primary_button.dart';
 import 'package:what_eat_app/core/widgets/price_badge.dart';
 import 'package:what_eat_app/core/widgets/cached_food_image.dart';
+import 'package:what_eat_app/core/widgets/food_detail_skeleton.dart';
 import '../../../../models/food_model.dart';
 import '../../../../core/services/deep_link_service.dart';
 import '../../../../core/services/copywriting_service.dart';
@@ -15,22 +16,61 @@ import '../../../../core/services/analytics_service.dart';
 import '../logic/recommendation_provider.dart';
 import '../logic/scoring_engine.dart';
 
-class ResultScreen extends ConsumerWidget {
-  final FoodModel food;
+/// ⚡ OPTIMIZED: Supports optimistic navigation với loading skeleton
+class ResultScreen extends ConsumerStatefulWidget {
+  final FoodModel? food; // Nullable for loading state
   final RecommendationContext recContext;
+  final bool isLoading; // Flag for skeleton loading
 
   const ResultScreen({
     super.key,
-    required this.food,
+    this.food,
     required this.recContext,
+    this.isLoading = false,
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final copywritingService = ref.watch(copywritingServiceProvider);
-    final analyticsService = ref.watch(analyticsServiceProvider);
-    final shareService = ShareService(analyticsService: analyticsService);
-    final deepLinkService = DeepLinkService();
+  ConsumerState<ResultScreen> createState() => _ResultScreenState();
+}
+
+class _ResultScreenState extends ConsumerState<ResultScreen> {
+  FoodModel? _currentFood;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentFood = widget.food;
+    _isLoading = widget.isLoading;
+    
+    // ⚡ If we already have food data, not loading
+    if (_currentFood != null) {
+      _isLoading = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // ⚡ Listen to recommendation state changes
+    ref.listen<RecommendationState>(recommendationProvider, (previous, next) {
+      // Update food when recommendation completes
+      if (!next.isLoading && next.currentFood != null) {
+        if (_currentFood?.id != next.currentFood!.id || _isLoading) {
+          setState(() {
+            _currentFood = next.currentFood;
+            _isLoading = false;
+          });
+        }
+      }
+      
+      // Handle errors
+      if (next.error != null && _isLoading) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    });
+
     final recommendationState = ref.watch(recommendationProvider);
 
     return Scaffold(
@@ -38,71 +78,42 @@ class ResultScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Gợi ý món ăn'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.share),
-            onPressed: () => _handleShare(context, shareService, copywritingService),
-          ),
+          if (_currentFood != null && !_isLoading)
+            IconButton(
+              icon: const Icon(Icons.share),
+              onPressed: () => _handleShare(context, ref, _currentFood!),
+            ),
         ],
       ),
-      body: SingleChildScrollView(
+      body: _isLoading
+          ? const FoodDetailSkeleton() // ⚡ Show skeleton while loading
+          : _currentFood == null
+              ? _buildErrorState(context)
+              : _buildFoodContent(context, ref, recommendationState),
+    );
+  }
+
+  Widget _buildErrorState(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildFoodImage(),
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.xl),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    food.name,
-                    style: Theme.of(context).textTheme.displaySmall,
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  PriceBadge(level: _mapPrice(food.priceSegment)),
-                  const SizedBox(height: AppSpacing.lg),
-                  if (food.description.isNotEmpty) ...[
-                    Text(
-                      food.description,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: AppColors.textSecondary,
-                            height: 1.5,
-                          ),
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
-                  ],
-                  FutureBuilder<String>(
-                    future: copywritingService.getRecommendationReason(
-                      weather: recContext.weather,
-                      companion: recContext.companion,
-                      mood: recContext.mood,
-                    ),
-                    builder: (context, snapshot) {
-                      if (snapshot.hasData) {
-                        return _buildReasonCard(snapshot.data!, context);
-                      }
-                      return const SizedBox.shrink();
-                    },
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  FutureBuilder<String>(
-                    future: copywritingService.getJokeMessage(),
-                    builder: (context, snapshot) {
-                      if (snapshot.hasData) {
-                        return _buildJokeCard(snapshot.data!, context);
-                      }
-                      return const SizedBox.shrink();
-                    },
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                  _buildActionButtons(
-                    context,
-                    ref,
-                    deepLinkService,
-                    recommendationState,
-                  ),
-                ],
-              ),
+            const Icon(
+              Icons.error_outline,
+              size: 64,
+              color: AppColors.textSecondary,
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              'Không thể tải món ăn',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            PrimaryButton(
+              label: 'Quay lại',
+              onPressed: () => Navigator.of(context).pop(),
             ),
           ],
         ),
@@ -110,11 +121,83 @@ class ResultScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildFoodImage() {
+  Widget _buildFoodContent(
+    BuildContext context,
+    WidgetRef ref,
+    RecommendationState recommendationState,
+  ) {
+    final food = _currentFood!;
+
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildFoodImage(food),
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.xl),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  food.name,
+                  style: Theme.of(context).textTheme.displaySmall,
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                PriceBadge(level: _mapPrice(food.priceSegment)),
+                const SizedBox(height: AppSpacing.lg),
+                if (food.description.isNotEmpty) ...[
+                  Text(
+                    food.description,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: AppColors.textSecondary,
+                          height: 1.5,
+                        ),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                ],
+                FutureBuilder<String>(
+                  future: ref.read(copywritingServiceProvider).getRecommendationReason(
+                    weather: widget.recContext.weather,
+                    companion: widget.recContext.companion,
+                    mood: widget.recContext.mood,
+                  ),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      return _buildReasonCard(snapshot.data!, context);
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                FutureBuilder<String>(
+                  future: ref.read(copywritingServiceProvider).getJokeMessage(),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      return _buildJokeCard(snapshot.data!, context);
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                _buildActionButtons(
+                  context,
+                  ref,
+                  recommendationState,
+                  food,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFoodImage(FoodModel food) {
     final imageUrl = _firstValidImage(food.images);
 
     return Hero(
-      tag: food.id,
+      tag: 'food_${food.id}', // ⚡ Unique hero tag for smooth transition
       child: SizedBox(
         height: 320,
         width: double.infinity,
@@ -184,9 +267,11 @@ class ResultScreen extends ConsumerWidget {
   Widget _buildActionButtons(
     BuildContext context,
     WidgetRef ref,
-    DeepLinkService deepLinkService,
     RecommendationState state,
+    FoodModel food,
   ) {
+    final deepLinkService = DeepLinkService();
+    
     return Column(
       children: [
         PrimaryButton(
@@ -243,22 +328,26 @@ class ResultScreen extends ConsumerWidget {
 
   Future<void> _handleShare(
     BuildContext context,
-    ShareService shareService,
-    CopywritingService copywritingService,
+    WidgetRef ref,
+    FoodModel food,
   ) async {
+    final copywritingService = ref.read(copywritingServiceProvider);
+    final analyticsService = ref.read(analyticsServiceProvider);
+    final shareService = ShareService(analyticsService: analyticsService);
+    
     // Get recommendation reason for richer share text
     final reason = await copywritingService.getRecommendationReason(
-      weather: recContext.weather,
-      companion: recContext.companion,
-      mood: recContext.mood,
+      weather: widget.recContext.weather,
+      companion: widget.recContext.companion,
+      mood: widget.recContext.mood,
     );
 
     // Share with full context
     await shareService.shareFoodWithContext(
       food: food,
-      weather: recContext.weather?.description,
-      companion: recContext.companion,
-      mood: recContext.mood,
+      weather: widget.recContext.weather?.description,
+      companion: widget.recContext.companion,
+      mood: widget.recContext.mood,
       reason: reason,
     );
   }
