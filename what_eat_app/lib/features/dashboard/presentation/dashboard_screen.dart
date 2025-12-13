@@ -10,16 +10,18 @@ import 'package:what_eat_app/core/widgets/food_image_card.dart';
 import 'package:what_eat_app/core/widgets/shimmer_box.dart';
 import 'package:what_eat_app/core/widgets/primary_button.dart';
 import 'package:what_eat_app/core/widgets/price_badge.dart';
+import 'package:what_eat_app/models/user_model.dart';
 import '../../../../core/services/context_manager.dart';
 import '../../../../core/services/copywriting_service.dart';
 import '../../../../core/services/weather_service.dart';
 import '../../../../core/services/activity_log_service.dart';
 import '../../../../core/services/analytics_service.dart';
+import '../../../../core/utils/logger.dart';
 import '../../recommendation/logic/recommendation_provider.dart';
 import '../../recommendation/logic/scoring_engine.dart';
 import '../../recommendation/presentation/widgets/input_bottom_sheet.dart';
+import '../../recommendation/data/repositories/food_repository.dart' as food_repo;
 import '../../user/data/user_preferences_repository.dart';
-import '../../auth/logic/auth_provider.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -46,6 +48,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     super.initState();
     _loadContext();
     _preloadHistory();
+    _warmCache(); // ⚡ NEW: Preload data for instant recommendations
     _startSlotAnimation();
   }
 
@@ -85,6 +88,34 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     await notifier.loadHistory(userId: uid, limit: 10);
   }
 
+  /// ⚡ OPTIMIZATION: Warm cache in background for instant recommendations
+  /// Preloads foods and user settings without blocking UI
+  Future<void> _warmCache() async {
+    try {
+      AppLogger.debug('🔥 Cache warming started');
+      
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      
+      // Fire-and-forget parallel preloading
+      final futures = <Future>[];
+      
+      // Preload all foods (will use cache if valid)
+      futures.add(ref.read(food_repo.foodRepositoryProvider).getAllFoods());
+      
+      // Preload user settings if logged in
+      if (userId != null) {
+        futures.add(UserPreferencesRepository().fetchUserSettings(userId));
+      }
+      
+      unawaited(Future.wait(futures));
+      
+      AppLogger.debug('🔥 Cache warming initiated (non-blocking)');
+    } catch (e) {
+      // Silent fail - cache warming is best-effort
+      AppLogger.debug('Cache warming failed (expected when offline): $e');
+    }
+  }
+
   void _startSlotAnimation() {
     _slotTimer = Timer.periodic(const Duration(milliseconds: 1800), (_) {
       if (!mounted) return;
@@ -100,7 +131,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     super.dispose();
   }
 
+  /// ⚡ OPTIMIZED: Parallel execution + non-blocking operations
   Future<void> _handleGetRecommendation() async {
+    final startTime = DateTime.now();
+    
     // Show input bottom sheet
     final input = await InputBottomSheet.show(context);
     
@@ -119,64 +153,107 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       return;
     }
 
-    // Load user settings
-    final userPrefsRepo = UserPreferencesRepository();
-    final userSettings = await userPrefsRepo.fetchUserSettings(userId);
-
-    // Get context with user input
-    final contextManager = ref.read(contextManagerProvider);
-    final recommendationContext = await contextManager.getCurrentContext(
-      budget: input.budget,
-      companion: input.companion,
-      mood: input.mood,
-      excludedAllergens: userSettings?.excludedAllergens ?? const [],
-      blacklistedFoods: userSettings?.blacklistedFoods ?? const [],
-      isVegetarian: userSettings?.isVegetarian ?? false,
-      spiceTolerance: userSettings?.spiceTolerance ?? 2,
-    );
-
-    // Log activity & analytics (best-effort, non-blocking errors handled inside)
-    final activityLogService = ref.read(activityLogServiceProvider);
-    final analyticsService = ref.read(analyticsServiceProvider);
-    await Future.wait([
-      activityLogService.logRecommendationRequest(
-        userId: userId,
-        context: recommendationContext,
-      ),
-      analyticsService.logRecommendationRequested(recommendationContext),
-    ]);
-
-    // Get recommendation
-    final notifier = ref.read(recommendationProvider.notifier);
-    await notifier.getRecommendations(
-      recommendationContext,
-      userId: userId,
-    );
-
-    // Check result
-    final state = ref.read(recommendationProvider);
-    
-    if (!mounted) return;
-
-    if (state.error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(state.error!),
-          backgroundColor: Colors.red,
+    try {
+      // ⚡ OPTIMIZATION 1: Parallel loading (settings + context)
+      AppLogger.debug('⚡ Starting parallel data loading...');
+      
+      final results = await Future.wait([
+        UserPreferencesRepository().fetchUserSettings(userId),
+        ref.read(contextManagerProvider).getCurrentContext(
+          budget: input.budget,
+          companion: input.companion,
+          mood: input.mood,
+          // Use defaults first for faster response
+          excludedAllergens: const [],
+          blacklistedFoods: const [],
+          isVegetarian: false,
+          spiceTolerance: 2,
         ),
-      );
-      return;
-    }
+      ]);
 
-    if (state.currentFood != null) {
-      // Navigate to result screen with food and context
-      context.pushNamed(
-        'result',
-        extra: {
-          'food': state.currentFood,
-          'context': recommendationContext,
-        },
+      final userSettings = results[0] as UserSettings?;
+      var recommendationContext = results[1] as RecommendationContext;
+
+      // Merge user settings into context
+      recommendationContext = RecommendationContext(
+        weather: recommendationContext.weather,
+        budget: recommendationContext.budget,
+        companion: recommendationContext.companion,
+        mood: recommendationContext.mood,
+        excludedAllergens: userSettings?.excludedAllergens ?? const [],
+        blacklistedFoods: userSettings?.blacklistedFoods ?? const [],
+        isVegetarian: userSettings?.isVegetarian ?? false,
+        spiceTolerance: userSettings?.spiceTolerance ?? 2,
+        favoriteCuisines: recommendationContext.favoriteCuisines,
+        recentlyEaten: recommendationContext.recentlyEaten,
+        excludedFoods: recommendationContext.excludedFoods,
       );
+
+      final loadTime = DateTime.now().difference(startTime).inMilliseconds;
+      AppLogger.info('⚡ Data loaded in ${loadTime}ms');
+
+      // ⚡ OPTIMIZATION 2: Non-blocking analytics (fire-and-forget)
+      final activityLogService = ref.read(activityLogServiceProvider);
+      final analyticsService = ref.read(analyticsServiceProvider);
+      
+      unawaited(Future.wait([
+        activityLogService.logRecommendationRequest(
+          userId: userId,
+          context: recommendationContext,
+        ).catchError((e) {
+          AppLogger.debug('Activity log failed (non-critical): $e');
+        }),
+        analyticsService.logRecommendationRequested(recommendationContext).catchError((e) {
+          AppLogger.debug('Analytics log failed (non-critical): $e');
+        }),
+      ]));
+
+      // Get recommendation (uses cached foods → should be fast)
+      final notifier = ref.read(recommendationProvider.notifier);
+      await notifier.getRecommendations(
+        recommendationContext,
+        userId: userId,
+      );
+
+      final totalTime = DateTime.now().difference(startTime).inMilliseconds;
+      AppLogger.info('⚡ Recommendation completed in ${totalTime}ms');
+
+      // Check result
+      final state = ref.read(recommendationProvider);
+      
+      if (!mounted) return;
+
+      if (state.error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(state.error!),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      if (state.currentFood != null) {
+        // ⚡ OPTIMIZATION 3: Navigate immediately
+        // History and analytics are already saved in background
+        context.pushNamed(
+          'result',
+          extra: {
+            'food': state.currentFood,
+            'context': recommendationContext,
+          },
+        );
+      }
+    } catch (e, st) {
+      AppLogger.error('Recommendation failed: $e', e, st);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi khi lấy gợi ý: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

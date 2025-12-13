@@ -193,40 +193,52 @@ class ShareService {
   }) {
     final buffer = StringBuffer();
 
-    // Header với emoji
-    buffer.writeln('🎯 Gợi ý món ăn cho bạn!');
+    // Catchy header
+    buffer.writeln('🍽️ Tôi được gợi ý món: ${food.name}!');
     buffer.writeln();
 
-    // Context info
+    // Food details in compact format
+    final details = <String>[];
+    details.add('🍴 ${food.cuisineId}');
+    details.add('${_getPriceEmoji(food.priceSegment)} ${_getPriceText(food.priceSegment)}');
+    buffer.writeln(details.join(' • '));
+    
+    buffer.writeln();
+
+    // Context in compact format
     if (weather != null || companion != null || mood != null) {
-      buffer.writeln('📝 Bối cảnh:');
-      if (weather != null) buffer.writeln('   ☀️ Thời tiết: $weather');
-      if (companion != null) buffer.writeln('   👥 Cùng: $companion');
-      if (mood != null) buffer.writeln('   😊 Tâm trạng: $mood');
-      buffer.writeln();
+      final contexts = <String>[];
+      if (weather != null) contexts.add('☀️ $weather');
+      if (companion != null) contexts.add('👥 ${_formatCompanion(companion)}');
+      if (mood != null) contexts.add('😊 $mood');
+      
+      if (contexts.isNotEmpty) {
+        buffer.writeln(contexts.join(' • '));
+        buffer.writeln();
+      }
     }
 
-    // Reason
+    // Reason if available
     if (reason != null && reason.isNotEmpty) {
       buffer.writeln('💡 $reason');
       buffer.writeln();
     }
 
-    // Food info
-    buffer.writeln('🍜 ${food.name}');
-    buffer.writeln('${_getPriceEmoji(food.priceSegment)} ${_getPriceText(food.priceSegment)}');
-    buffer.writeln('🍴 ${food.cuisineId} - ${food.mealTypeId}');
-
-    if (food.description.isNotEmpty) {
+    // Short description if available
+    if (food.description.isNotEmpty && food.description.length < 100) {
+      buffer.writeln(food.description);
       buffer.writeln();
-      buffer.writeln('💭 ${food.description}');
     }
 
-    // Maps link
-    buffer.writeln();
+    // Maps link - clickable
     buffer.writeln('📍 Tìm quán ngay:');
     buffer.writeln(_buildGoogleMapsUrl(food.mapQuery));
-
+    
+    buffer.writeln();
+    
+    // Hashtags for social media
+    buffer.writeln(_buildHashtags(food));
+    
     buffer.writeln();
     buffer.writeln('💚 Từ app "Hôm Nay Ăn Gì?"');
 
@@ -286,6 +298,48 @@ class ShareService {
       default:
         return 'Chưa rõ';
     }
+  }
+
+  String _formatCompanion(String companion) {
+    switch (companion.toLowerCase()) {
+      case 'alone':
+        return 'Một mình';
+      case 'family':
+        return 'Gia đình';
+      case 'friends':
+        return 'Bạn bè';
+      case 'date':
+        return 'Hẹn hò';
+      case 'colleagues':
+        return 'Đồng nghiệp';
+      default:
+        return companion;
+    }
+  }
+
+  String _buildHashtags(FoodModel food) {
+    final tags = <String>[];
+    
+    // App hashtag
+    tags.add('#HômNayĂnGì');
+    
+    // Cuisine hashtag (clean)
+    final cuisine = food.cuisineId.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '');
+    if (cuisine.isNotEmpty) {
+      tags.add('#$cuisine');
+    }
+    
+    // Meal type
+    final mealType = food.mealTypeId.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '');
+    if (mealType.isNotEmpty) {
+      tags.add('#$mealType');
+    }
+    
+    // Add popular food hashtags
+    tags.add('#ĂnGì');
+    tags.add('#MónNgon');
+    
+    return tags.take(5).join(' ');
   }
 
   Future<void> _trackShareEvent(FoodModel food, String source) async {
