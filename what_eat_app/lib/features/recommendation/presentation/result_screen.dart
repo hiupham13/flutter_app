@@ -7,7 +7,9 @@ import 'package:what_eat_app/core/widgets/primary_button.dart';
 import 'package:what_eat_app/core/widgets/price_badge.dart';
 import 'package:what_eat_app/core/widgets/cached_food_image.dart';
 import 'package:what_eat_app/core/widgets/food_detail_skeleton.dart';
+import 'package:what_eat_app/core/services/cloudinary_service.dart';
 import '../../../../models/food_model.dart';
+import '../../../../models/food_model_extensions.dart';
 import '../../../../core/services/deep_link_service.dart';
 import '../../../../core/services/copywriting_service.dart';
 import '../../../../core/services/share_service.dart';
@@ -194,7 +196,13 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
   }
 
   Widget _buildFoodImage(FoodModel food) {
-    final imageUrl = _firstValidImage(food.images);
+    // Sử dụng CloudinaryService với fallback: images → id → name
+    final cloudinaryService = ref.read(cloudinaryServiceProvider);
+    final imageUrl = food.getImageUrl(
+      cloudinaryService,
+      transformations: 'c_fill,g_auto,q_auto,w_800',
+      enableLogging: true, // Bật logging để debug
+    );
 
     return Hero(
       tag: 'food_${food.id}', // ⚡ Unique hero tag for smooth transition
@@ -352,14 +360,6 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     );
   }
 
-  String? _firstValidImage(List<String> urls) {
-    for (final url in urls) {
-      if (url.startsWith('http://') || url.startsWith('https://')) {
-        return url;
-      }
-    }
-    return null;
-  }
 
   PriceLevel _mapPrice(int segment) {
     switch (segment) {
