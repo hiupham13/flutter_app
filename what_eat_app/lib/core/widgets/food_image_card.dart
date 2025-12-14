@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:what_eat_app/config/theme/style_tokens.dart';
-import 'package:what_eat_app/core/constants/app_colors.dart';
+
 import 'package:what_eat_app/core/widgets/price_badge.dart';
 import 'package:what_eat_app/core/widgets/cached_food_image.dart';
 
