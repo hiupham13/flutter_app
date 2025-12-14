@@ -98,18 +98,19 @@ class CloudinaryService {
 
   /// Tạo Cloudinary URL từ food ID
   /// 
-  /// Format: {normalized-id}.jpg (không có folder prefix)
-  /// Ví dụ: food.id = "pho-bo" → "pho-bo.jpg"
+  /// Format: foods/{normalized-id}.jpg (có folder prefix)
+  /// Ví dụ: food.id = "pho-bo" → "foods/pho-bo.jpg"
   /// 
-  /// **Lưu ý**: Trên Cloudinary, khi file ở trong folder, Public ID trong URL
-  /// có thể không cần folder prefix. Ví dụ: file ở folder "foods" nhưng Public ID
-  /// trong URL chỉ là "pho-bo.jpg" (không phải "foods/pho-bo.jpg")
+  /// **Lưu ý**: File được upload vào folder "foods" trên Cloudinary,
+  /// Public ID sẽ có folder prefix: foods/pho-bo
+  /// URL: https://res.cloudinary.com/dinrpqxne/image/upload/v1765710866/foods/pho-bo.jpg
   /// 
   /// Normalize: lowercase, loại bỏ ký tự đặc biệt, thay bằng dash
   String getFoodImageUrlFromId(
     String foodId, {
     String transformations = defaultFoodTransformations,
     String extension = 'jpg',
+    String folder = 'foods',
     bool enableLogging = false,
   }) {
     if (foodId.isEmpty) {
@@ -129,16 +130,15 @@ class CloudinaryService {
       return '';
     }
     
-    // Public ID không có folder prefix (file ở folder "foods" nhưng Public ID chỉ là tên file)
-    // Format: pho-bo.jpg (không phải foods/pho-bo.jpg)
-    final publicId = '$normalizedId.$extension';
+    // Public ID có folder prefix: foods/pho-bo.jpg
+    final publicId = '$folder/$normalizedId.$extension';
     final url = '$baseUrl/$transformations/$publicId';
     
     if (enableLogging) {
       AppLogger.info('Cloudinary URL from ID:');
       AppLogger.info('  Food ID: $foodId');
       AppLogger.info('  Normalized ID: $normalizedId');
-      AppLogger.info('  Public ID: $publicId (không có folder prefix)');
+      AppLogger.info('  Public ID: $publicId (có folder prefix: $folder/)');
       AppLogger.info('  Full URL: $url');
     }
     
@@ -147,12 +147,16 @@ class CloudinaryService {
 
   /// Tạo Cloudinary URL từ food name
   /// 
-  /// Format: {normalized-name}.jpg (không có folder prefix)
+  /// Format: foods/{normalized-name}.jpg (có folder prefix)
   /// Normalize: loại bỏ dấu tiếng Việt, lowercase, space → dash
+  /// 
+  /// **Lưu ý**: File được upload vào folder "foods" trên Cloudinary,
+  /// Public ID sẽ có folder prefix: foods/banh-trang-tron
   String getFoodImageUrlFromName(
     String foodName, {
     String transformations = defaultFoodTransformations,
     String extension = 'jpg',
+    String folder = 'foods',
     bool enableLogging = false,
   }) {
     if (foodName.isEmpty) {
@@ -184,15 +188,15 @@ class CloudinaryService {
       return '';
     }
     
-    // Public ID không có folder prefix
-    final publicId = '$normalizedName.$extension';
+    // Public ID có folder prefix: foods/banh-trang-tron.jpg
+    final publicId = '$folder/$normalizedName.$extension';
     final url = '$baseUrl/$transformations/$publicId';
     
     if (enableLogging) {
       AppLogger.info('Cloudinary URL from Name:');
       AppLogger.info('  Food Name: $foodName');
       AppLogger.info('  Normalized Name: $normalizedName');
-      AppLogger.info('  Public ID: $publicId (không có folder prefix)');
+      AppLogger.info('  Public ID: $publicId (có folder prefix: $folder/)');
       AppLogger.info('  Full URL: $url');
     }
     
@@ -203,11 +207,19 @@ class CloudinaryService {
   /// 
   /// Ưu tiên:
   /// 1. food.images list (nếu có và là URL hợp lệ, không phải placeholder)
-  /// 2. food.id → {id}.jpg (không có folder prefix)
-  /// 3. food.name → {normalized-name}.jpg (không có folder prefix)
+  /// 2. food.id → foods/{id}.jpg (chỉ khi enableAutoFallback = true)
+  /// 3. food.name → foods/{normalized-name}.jpg (chỉ khi enableAutoFallback = true)
   /// 
-  /// **Lưu ý**: Public ID không có folder prefix vì file trên Cloudinary
-  /// có thể ở folder "foods" nhưng Public ID trong URL chỉ là tên file.
+  /// **Lưu ý**: 
+  /// - Public ID có folder prefix: foods/pho-bo.jpg
+  /// - URL format: https://res.cloudinary.com/dinrpqxne/image/upload/v1765710866/foods/pho-bo.jpg
+  /// - Fallback tự động (từ food.id/food.name) chỉ nên bật khi chắc chắn
+  ///   file đã được upload lên Cloudinary. Nếu không, sẽ tạo URL giả định
+  ///   mà file không tồn tại → ảnh sẽ không hiển thị được.
+  /// 
+  /// [enableAutoFallback] - Nếu true, sẽ tự động tạo URL từ food.id/food.name
+  ///                        khi không có URL hợp lệ trong images list.
+  ///                        Mặc định: false (chỉ dùng URL từ images list)
   /// 
   /// Trả về Cloudinary URL đã transform hoặc null nếu không tìm thấy
   String? getFoodImageUrl(
@@ -216,6 +228,7 @@ class CloudinaryService {
     List<String>? images, {
     String transformations = defaultFoodTransformations,
     bool enableLogging = false,
+    bool enableAutoFallback = false,
   }) {
     if (enableLogging) {
       AppLogger.info('Cloudinary: Getting image URL');
@@ -223,6 +236,7 @@ class CloudinaryService {
       AppLogger.info('  Food Name: $foodName');
       AppLogger.info('  Images list: ${images?.length ?? 0} items');
       AppLogger.info('  Cloud Name: $cloudName');
+      AppLogger.info('  Auto Fallback: $enableAutoFallback');
     }
     
     // Ưu tiên 1: Sử dụng images list nếu có và là URL hợp lệ
@@ -245,27 +259,45 @@ class CloudinaryService {
       }
     }
     
-    // Ưu tiên 2: Sử dụng food.id
+    // Chỉ fallback tự động nếu được bật
+    if (!enableAutoFallback) {
+      if (enableLogging) {
+        AppLogger.warning('  Auto fallback is disabled. No valid image URL found.');
+        AppLogger.warning('  ⚠️  Lưu ý: File có thể chưa được upload lên Cloudinary.');
+        AppLogger.warning('  💡 Giải pháp: Upload ảnh lên Cloudinary và cập nhật field "images" trong Firestore.');
+      }
+      return null;
+    }
+    
+    // Ưu tiên 2: Sử dụng food.id (chỉ khi enableAutoFallback = true)
     if (foodId != null && foodId.isNotEmpty) {
       final urlFromId = getFoodImageUrlFromId(
         foodId,
         transformations: transformations,
+        folder: 'foods', // Folder prefix: foods/
         enableLogging: enableLogging,
       );
       if (urlFromId.isNotEmpty) {
         if (enableLogging) {
-          AppLogger.info('  Using food ID: $urlFromId');
+          AppLogger.warning('  ⚠️  Using food ID fallback: $urlFromId');
+          AppLogger.warning('  ⚠️  Lưu ý: File này có thể chưa tồn tại trên Cloudinary!');
         }
         return urlFromId;
       }
     }
     
-    // Ưu tiên 3: Sử dụng food.name
+    // Ưu tiên 3: Sử dụng food.name (chỉ khi enableAutoFallback = true)
     if (foodName != null && foodName.isNotEmpty) {
-      final urlFromName = getFoodImageUrlFromName(foodName, transformations: transformations);
+      final urlFromName = getFoodImageUrlFromName(
+        foodName,
+        transformations: transformations,
+        folder: 'foods', // Folder prefix: foods/
+        enableLogging: enableLogging,
+      );
       if (urlFromName.isNotEmpty) {
         if (enableLogging) {
-          AppLogger.info('  Using food name: $urlFromName');
+          AppLogger.warning('  ⚠️  Using food name fallback: $urlFromName');
+          AppLogger.warning('  ⚠️  Lưu ý: File này có thể chưa tồn tại trên Cloudinary!');
         }
         return urlFromName;
       }
