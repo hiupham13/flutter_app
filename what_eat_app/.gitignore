@@ -108,10 +108,17 @@ lib/generated_plugin_registrant.dart
 **/*.env
 **/*.env.local
 **/*.env.*.local
+**/.env
+**/.env.*
 
 # API Keys & Secrets
 **/lib/core/constants/api_keys.dart
 **/lib/core/constants/secrets.dart
+
+# Cloudinary Credentials
+**/scripts/.env
+**/scripts/.env.local
+**/scripts/.env.*.local
 
 # Exceptions: Cho phép firebase_options.dart nếu không chứa thông tin nhạy cảm
 # (Nhưng tốt nhất vẫn nên ignore và generate lại bằng flutterfire configure)
@@ -143,3 +150,19 @@ Thumbs.db
 .Spotlight-V100
 .Trashes
 ehthumbs.db
+
+# Node.js / Scripts (QUAN TRỌNG - Không commit credentials)
+**/scripts/node_modules/
+**/scripts/.env
+**/scripts/.env.*
+**/scripts/*.log
+**/scripts/npm-debug.log*
+**/scripts/yarn-debug.log*
+**/scripts/yarn-error.log*
+
+# Cho phép các file code cần thiết trong scripts
+!**/scripts/upload-to-cloudinary.js
+!**/scripts/package.json
+!**/scripts/package-lock.json
+!**/scripts/README.md
+!**/scripts/.gitignore
