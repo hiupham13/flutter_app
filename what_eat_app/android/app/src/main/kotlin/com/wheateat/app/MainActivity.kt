@@ -1,5 +1,6 @@
-package com.example.what_eat_app
+package com.wheateat.app
 
 import io.flutter.embedding.android.FlutterActivity
 
 class MainActivity : FlutterActivity()
+
