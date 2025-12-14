@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/widgets/loading_indicator.dart';
 import '../../../core/widgets/error_widget.dart' as custom;
@@ -72,6 +73,20 @@ class SettingsScreen extends ConsumerWidget {
           title: 'Dữ Liệu',
           children: [
             _buildClearCacheTile(context, ref),
+          ],
+        ),
+        
+        const Divider(height: 32),
+        
+        // Legal & About Section
+        _buildSection(
+          context: context,
+          title: 'Pháp Lý & Hỗ Trợ',
+          children: [
+            _buildPrivacyPolicyTile(context),
+            _buildDeleteAccountTile(context),
+            _buildSupportTile(context),
+            _buildAboutTile(context),
           ],
         ),
         
@@ -328,6 +343,122 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
   
+  Widget _buildPrivacyPolicyTile(BuildContext context) {
+    return ListTile(
+      leading: const Icon(Icons.privacy_tip_outlined),
+      title: const Text('Chính sách bảo mật'),
+      trailing: const Icon(Icons.open_in_new, size: 18),
+      onTap: () async {
+        final url = Uri.parse('https://whateatapp.vercel.app/privacy-policy.html');
+        try {
+          if (await canLaunchUrl(url)) {
+            await launchUrl(url, mode: LaunchMode.externalApplication);
+          } else {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Không thể mở liên kết')),
+              );
+            }
+          }
+        } catch (e) {
+          AppLogger.error('Failed to launch privacy policy URL: $e');
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Lỗi khi mở liên kết')),
+            );
+          }
+        }
+      },
+    );
+  }
+
+  Widget _buildDeleteAccountTile(BuildContext context) {
+    return ListTile(
+      leading: const Icon(Icons.delete_forever_outlined),
+      title: const Text('Xóa tài khoản'),
+      subtitle: const Text('Yêu cầu xóa tài khoản và dữ liệu'),
+      trailing: const Icon(Icons.open_in_new, size: 18),
+      onTap: () async {
+        final url = Uri.parse('https://whateatapp.vercel.app/delete-account.html');
+        try {
+          if (await canLaunchUrl(url)) {
+            await launchUrl(url, mode: LaunchMode.externalApplication);
+          } else {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Không thể mở liên kết')),
+              );
+            }
+          }
+        } catch (e) {
+          AppLogger.error('Failed to launch delete account URL: $e');
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Lỗi khi mở liên kết')),
+            );
+          }
+        }
+      },
+    );
+  }
+
+  Widget _buildSupportTile(BuildContext context) {
+    return ListTile(
+      leading: const Icon(Icons.help_outline),
+      title: const Text('Hỗ trợ'),
+      subtitle: const Text('Câu hỏi thường gặp và liên hệ'),
+      trailing: const Icon(Icons.open_in_new, size: 18),
+      onTap: () async {
+        final url = Uri.parse('https://whateatapp.vercel.app/support.html');
+        try {
+          if (await canLaunchUrl(url)) {
+            await launchUrl(url, mode: LaunchMode.externalApplication);
+          } else {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Không thể mở liên kết')),
+              );
+            }
+          }
+        } catch (e) {
+          AppLogger.error('Failed to launch support URL: $e');
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Lỗi khi mở liên kết')),
+            );
+          }
+        }
+      },
+    );
+  }
+
+  Widget _buildAboutTile(BuildContext context) {
+    return ListTile(
+      leading: const Icon(Icons.info_outline),
+      title: const Text('Về ứng dụng'),
+      subtitle: const Text('Phiên bản 1.0.0'),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () {
+        showAboutDialog(
+          context: context,
+          applicationName: 'What Eat - Hôm Nay Ăn Gì?',
+          applicationVersion: '1.0.0',
+          applicationIcon: const Icon(Icons.restaurant_menu, size: 48),
+          children: [
+            const Padding(
+              padding: EdgeInsets.only(top: 16),
+              child: Text(
+                'Ứng dụng đề xuất món ăn thông minh cho người Việt. '
+                'Giúp bạn tìm ra món ăn hoàn hảo mỗi ngày dựa trên '
+                'thời tiết, vị trí và sở thích của bạn.',
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Widget _buildLogoutButton(BuildContext context, WidgetRef ref) {
     return OutlinedButton.icon(
       onPressed: () async {
