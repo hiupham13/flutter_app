@@ -22,7 +22,6 @@ import '../../recommendation/logic/scoring_engine.dart';
 import '../../recommendation/presentation/widgets/input_bottom_sheet.dart';
 import '../../recommendation/data/repositories/food_repository.dart' as food_repo;
 import '../../user/data/user_preferences_repository.dart';
-import 'package:what_eat_app/core/utils/cloudinary_test_helper.dart';
 
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -52,9 +51,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     _preloadHistory();
     _warmCache(); // ⚡ NEW: Preload data for instant recommendations
     _startSlotAnimation();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-    CloudinaryTestHelper.quickTest(ref);
-  });
   }
 
   Future<void> _loadContext() async {

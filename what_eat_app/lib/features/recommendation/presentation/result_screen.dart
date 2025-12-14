@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:what_eat_app/config/theme/style_tokens.dart';
@@ -15,6 +16,7 @@ import '../../../../core/services/copywriting_service.dart';
 import '../../../../core/services/share_service.dart';
 import '../../../../core/services/activity_log_service.dart';
 import '../../../../core/services/analytics_service.dart';
+import '../../../../core/utils/logger.dart';
 import '../logic/recommendation_provider.dart';
 import '../logic/scoring_engine.dart';
 
@@ -201,8 +203,23 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     final imageUrl = food.getImageUrl(
       cloudinaryService,
       transformations: 'c_fill,g_auto,q_auto,w_800',
-      enableLogging: true, // Bật logging để debug
+      enableAutoFallback: true, // Bật auto fallback để tự tạo URL từ food.id nếu images list không hợp lệ
+      enableLogging: kDebugMode, // Bật logging trong debug mode để xem URL được tạo như thế nào
     );
+    
+    // Debug log trong debug mode
+    if (kDebugMode && imageUrl != null) {
+      AppLogger.info('🍔 Result Screen - Food Image URL:');
+      AppLogger.info('   Food ID: ${food.id}');
+      AppLogger.info('   Food Name: ${food.name}');
+      AppLogger.info('   Images list: ${food.images}');
+      AppLogger.info('   Generated URL: $imageUrl');
+    } else if (kDebugMode && imageUrl == null) {
+      AppLogger.warning('⚠️ Result Screen - No image URL found for:');
+      AppLogger.warning('   Food ID: ${food.id}');
+      AppLogger.warning('   Food Name: ${food.name}');
+      AppLogger.warning('   Images list: ${food.images}');
+    }
 
     return Hero(
       tag: 'food_${food.id}', // ⚡ Unique hero tag for smooth transition
