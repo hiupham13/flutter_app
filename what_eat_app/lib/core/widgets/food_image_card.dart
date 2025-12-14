@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:what_eat_app/config/theme/style_tokens.dart';
 import 'package:what_eat_app/core/constants/app_colors.dart';
 import 'package:what_eat_app/core/widgets/price_badge.dart';
+import 'package:what_eat_app/core/widgets/cached_food_image.dart';
 
 class FoodImageCard extends StatelessWidget {
   final String imageUrl;
@@ -130,17 +131,10 @@ class FoodImageCard extends StatelessWidget {
   }
 
   Widget _buildImage() {
-    return Image.network(
-      imageUrl,
+    return CachedFoodImage(
+      imageUrl: imageUrl,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => Container(
-        color: AppColors.surfaceMuted,
-        alignment: Alignment.center,
-        child: const Icon(
-          Icons.image_not_supported_rounded,
-          color: AppColors.textSecondary,
-        ),
-      ),
+      borderRadius: 0, // No border radius vì đã có ClipRRect ở parent
     );
   }
 }

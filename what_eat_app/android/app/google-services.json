@@ -12,7 +12,28 @@
           "package_name": "com.example.what_eat_app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "55060102370-hhfqn3jeubfar4dmjj5gv44vujc5ibpn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.what_eat_app",
+            "certificate_hash": "3845e064738f09d2c00af26bea65a0cc7f04a6e4"
+          }
+        },
+        {
+          "client_id": "55060102370-nnkrnji6rol03nh34e6f2f85g79jv5qt.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.what_eat_app",
+            "certificate_hash": "f3fcb83152364e7a4689f194176f05684798f9f7"
+          }
+        },
+        {
+          "client_id": "55060102370-kv68udhnuvo0p4gjr2dt95paufck8iik.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDw4SDjLpdqATl0UXnD9DQAOKb1MMmI-E4"
@@ -20,7 +41,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "55060102370-kv68udhnuvo0p4gjr2dt95paufck8iik.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "55060102370-1bs8vifn8p8biqjmj617kk2hcebpegdv.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.whatEatApp"
+              }
+            }
+          ]
         }
       }
     }

@@ -37,86 +37,66 @@ class RecommendationContext {
 /// Engine tính điểm cho món ăn dựa trên ngữ cảnh
 class ScoringEngine {
   final TimeManager _timeManager = TimeManager();
+  String? _cachedTimeOfDay; // ⚡ Cache time of day across scoring session
+  
+  /// Reset cache when starting new recommendation session
+  void resetCache() {
+    _cachedTimeOfDay = null;
+  }
+  
+  /// ⚡ OPTIMIZED: Faster multiplier calculation with caching
   /// Tính điểm cho một món ăn
   /// Công thức: FINAL_SCORE = (BASE_SCORE * MULTIPLIERS) + RANDOM_FACTOR
   double calculateScore(FoodModel food, RecommendationContext context) {
-    // Hard filters - Loại bỏ ngay nếu không phù hợp
-    if (!_passHardFilters(food, context)) {
-      return 0.0;
-    }
-
+    // Hard filters already passed at this point
     double score = 100.0; // Base score
 
-    // Context multipliers
+    // ⚡ Cache time of day (called once per session, not per food)
+    _cachedTimeOfDay ??= _timeManager.getTimeOfDay();
+
+    // Fast multipliers using direct map lookups
     score *= _getWeatherMultiplier(food, context.weather);
-    score *= _getCompanionMultiplier(food, context.companion);
-    score *= _getMoodMultiplier(food, context.mood);
+    score *= food.contextScores['companion_${context.companion}'] ?? 1.0;
+    score *= context.mood != null ? (food.contextScores['mood_${context.mood}'] ?? 1.0) : 1.0;
     score *= _getBudgetMultiplier(food, context.budget);
     score *= _getTimeAvailabilityMultiplier(food);
-    score *= _getTimeOfDayMultiplier(food);
-    score *= _getCuisinePreferenceMultiplier(food, context.favoriteCuisines);
-    score *= _getRecentlyEatenPenalty(food, context.recentlyEaten);
-    score *= _getVegetarianMultiplier(food, context.isVegetarian);
+    score *= food.contextScores['time_$_cachedTimeOfDay'] ?? 1.0;
+    
+    // Simple inline multipliers
+    if (context.favoriteCuisines.isNotEmpty && context.favoriteCuisines.contains(food.cuisineId)) {
+      score *= 1.2;
+    }
+    if (context.recentlyEaten.contains(food.id)) {
+      score *= 0.7;
+    }
 
     // Random factor (0-10% để tạo sự đa dạng)
-    final random = Random();
-    final randomFactor = score * 0.1 * random.nextDouble();
-    score += randomFactor;
+    score += score * 0.1 * Random().nextDouble();
 
     return score;
   }
 
-  /// Kiểm tra hard filters
+  /// ⚡ OPTIMIZED: Fast hard filters without logging overhead
+  /// Kiểm tra hard filters - Loại bỏ ngay nếu không phù hợp
   bool _passHardFilters(FoodModel food, RecommendationContext context) {
-    // Kiểm tra món có active không
-    if (!food.isActive) {
-      AppLogger.debug('Food ${food.id} filtered: not active');
-      return false;
-    }
-
-    // Kiểm tra budget - Cho phép món có giá cao hơn budget một chút (flexible)
-    // Nếu budget = 1, cho phép món segment 2 nhưng điểm sẽ thấp
-    // Chỉ loại bỏ nếu vượt quá nhiều (segment > budget + 1)
-    if (food.priceSegment > context.budget + 1) {
-      AppLogger.debug('Food ${food.id} filtered: priceSegment ${food.priceSegment} > budget ${context.budget} + 1');
-      return false;
-    }
-
-    // Kiểm tra available times - Chỉ loại bỏ nếu có thông tin và không khớp
-    // Nếu availableTimes rỗng hoặc null → Cho phép bán mọi lúc (flexible)
-    final currentTime = _timeManager.getTimeOfDay();
-    if (food.availableTimes.isNotEmpty && !food.availableTimes.contains(currentTime)) {
-      // Không loại bỏ hoàn toàn, chỉ log để biết
-      // Sẽ giảm điểm ở multiplier thay vì loại bỏ
-      AppLogger.debug('Food ${food.id} not ideal at $currentTime (available: ${food.availableTimes}), but allowing with lower score');
-      // Không return false, để món vẫn pass nhưng điểm sẽ thấp hơn
-    }
-
-    // Kiểm tra excluded foods
-    if (context.excludedFoods.contains(food.id) ||
-        context.blacklistedFoods.contains(food.id)) {
-      AppLogger.debug('Food ${food.id} filtered: in excluded foods');
-      return false;
-    }
-
-    // Kiểm tra allergens
+    // Fast checks without logging
+    if (!food.isActive) return false;
+    if (food.priceSegment > context.budget + 1) return false;
+    if (context.excludedFoods.contains(food.id)) return false;
+    if (context.blacklistedFoods.contains(food.id)) return false;
+    
+    // Check allergens
     for (final allergen in context.excludedAllergens) {
-      if (food.allergenTags.contains(allergen)) {
-        AppLogger.debug('Food ${food.id} filtered: contains allergen $allergen');
-        return false;
-      }
+      if (food.allergenTags.contains(allergen)) return false;
     }
-
-    // Kiểm tra vegetarian (nếu user chọn ăn chay và món không đánh dấu)
+    
+    // Check vegetarian
     if (context.isVegetarian) {
-      final isVegetarianFood =
-          food.flavorProfile.contains('vegetarian') || food.contextScores['is_vegetarian'] == 1.0;
-      if (!isVegetarianFood) {
-        AppLogger.debug('Food ${food.id} filtered: user is vegetarian');
-        return false;
-      }
+      final isVegetarianFood = food.flavorProfile.contains('vegetarian') ||
+                               food.contextScores['is_vegetarian'] == 1.0;
+      if (!isVegetarianFood) return false;
     }
-
+    
     return true;
   }
 
@@ -136,19 +116,6 @@ class ScoringEngine {
     return 1.0;
   }
 
-  /// Tính multiplier dựa trên người đi cùng
-  double _getCompanionMultiplier(FoodModel food, String companion) {
-    final key = 'companion_$companion';
-    return food.contextScores[key] ?? 1.0;
-  }
-
-  /// Tính multiplier dựa trên tâm trạng
-  double _getMoodMultiplier(FoodModel food, String? mood) {
-    if (mood == null) return 1.0;
-
-    final key = 'mood_$mood';
-    return food.contextScores[key] ?? 1.0;
-  }
 
   /// Tính multiplier dựa trên budget
   double _getBudgetMultiplier(FoodModel food, int budget) {
@@ -188,65 +155,60 @@ class ScoringEngine {
     return 0.6; // Giảm 40% điểm nhưng vẫn pass
   }
 
-  /// Tính multiplier dựa trên time of day preference (context_scores key: time_morning/lunch/dinner/late_night)
-  double _getTimeOfDayMultiplier(FoodModel food) {
-    final currentTime = _timeManager.getTimeOfDay();
-    final key = 'time_$currentTime';
-    return food.contextScores[key] ?? 1.0;
-  }
 
-  /// Ưu tiên cuisine ưa thích của user
-  double _getCuisinePreferenceMultiplier(FoodModel food, List<String> favoriteCuisines) {
-    if (favoriteCuisines.isEmpty) return 1.0;
-    if (favoriteCuisines.contains(food.cuisineId)) {
-      return 1.2;
-    }
-    return 1.0;
-  }
-
-  /// Giảm điểm cho món vừa ăn gần đây để tránh lặp
-  double _getRecentlyEatenPenalty(FoodModel food, List<String> recentlyEaten) {
-    if (recentlyEaten.contains(food.id)) {
-      return 0.7;
-    }
-    return 1.0;
-  }
-
-  /// Penalty nhẹ nếu món không phù hợp khẩu vị chay (đã lọc ở hard filters khi chắc chắn)
-  double _getVegetarianMultiplier(FoodModel food, bool isVegetarian) {
-    if (!isVegetarian) return 1.0;
-    final isVegetarianFood =
-        food.flavorProfile.contains('vegetarian') || food.contextScores['is_vegetarian'] == 1.0;
-    return isVegetarianFood ? 1.0 : 0.0;
-  }
-
-  /// Sắp xếp và lấy top N món ăn
+  /// ⚡ OPTIMIZED: Two-pass strategy with lazy evaluation
+  /// Pass 1: Fast hard filters
+  /// Pass 2: Score only qualified foods with early exit
   List<FoodModel> getTopFoods(
     List<FoodModel> foods,
     RecommendationContext context,
     int topN,
   ) {
-    AppLogger.info('Scoring ${foods.length} foods with context: budget=${context.budget}, companion=${context.companion}, mood=${context.mood}');
+    AppLogger.info('⚡ Filtering ${foods.length} foods...');
     
-    final scoredFoods = foods.map((food) {
+    // Reset cache for new session
+    resetCache();
+    
+    // ⚡ PASS 1: Fast hard filters (cheap operations)
+    final qualified = <FoodModel>[];
+    for (final food in foods) {
+      if (_passHardFilters(food, context)) {
+        qualified.add(food);
+      }
+    }
+    
+    AppLogger.info('⚡ ${qualified.length} foods passed hard filters');
+    
+    if (qualified.isEmpty) return [];
+    
+    // ⚡ PASS 2: Score qualified foods with early exit
+    final candidates = <MapEntry<FoodModel, double>>[];
+    int scored = 0;
+    
+    for (final food in qualified) {
       final score = calculateScore(food, context);
       if (score > 0) {
-        AppLogger.debug('Food ${food.id} (${food.name}): score=$score');
+        candidates.add(MapEntry(food, score));
+        scored++;
       }
-      return MapEntry(food, score);
-    }).toList();
-
-    scoredFoods.sort((a, b) => b.value.compareTo(a.value));
-
-    final topFoods = scoredFoods
-        .take(topN)
-        .where((entry) => entry.value > 0)
-        .map((entry) => entry.key)
-        .toList();
+      
+      // ⚡ Early exit: Stop when we have enough good candidates
+      // Buffer of 3x to ensure variety after sorting
+      if (candidates.length >= topN * 3) {
+        AppLogger.debug('⚡ Early exit: ${candidates.length} candidates after scoring $scored foods');
+        break;
+      }
+    }
     
-    AppLogger.info('Found ${topFoods.length} foods after filtering');
+    AppLogger.info('⚡ Scored $scored foods, ${candidates.length} valid candidates');
     
-    return topFoods;
+    // ⚡ Partial sort: Only sort candidates (not all foods)
+    candidates.sort((a, b) => b.value.compareTo(a.value));
+    
+    final result = candidates.take(topN).map((e) => e.key).toList();
+    AppLogger.info('⚡ Returning top ${result.length} foods');
+    
+    return result;
   }
 }
 

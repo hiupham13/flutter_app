@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../models/food_model.dart';
 import '../data/repositories/food_repository.dart';
@@ -65,12 +67,13 @@ class RecommendationNotifier extends StateNotifier<RecommendationState> {
   )
       : super(RecommendationState());
 
+  /// ⚡ OPTIMIZED: Defer non-critical writes to background
   Future<void> getRecommendations(RecommendationContext context,
       {int topN = 5, required String userId}) async {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      // Lấy tất cả món ăn
+      // Lấy tất cả món ăn (should be instant if cached)
       final allFoods = await _repository.getAllFoods();
 
       if (allFoods.isEmpty) {
@@ -92,24 +95,33 @@ class RecommendationNotifier extends StateNotifier<RecommendationState> {
         return;
       }
 
-      // Tăng view count cho món đầu tiên
-      await _repository.incrementViewCount(topFoods.first.id);
+      final selectedFood = topFoods.first;
 
-      // Lưu history lên Firestore (best-effort)
-      await _historyRepository.addHistory(
+      // ⚡ OPTIMIZATION: All writes are non-blocking (fire-and-forget)
+      // Let UI navigate immediately while these complete in background
+      unawaited(_repository.incrementViewCount(selectedFood.id).catchError((e) {
+        // Silent fail - view count is not critical
+        return;
+      }));
+
+      unawaited(_historyRepository.addHistory(
         userId: userId,
-        food: topFoods.first,
+        food: selectedFood,
         context: context,
-      );
+      ).catchError((e) {
+        // Silent fail - history save is not critical
+        return;
+      }));
 
+      // Update local state immediately
       final updatedHistory = [
-        topFoods.first,
-        ...state.history.where((f) => f.id != topFoods.first.id),
+        selectedFood,
+        ...state.history.where((f) => f.id != selectedFood.id),
       ];
 
       state = state.copyWith(
         recommendedFoods: topFoods,
-        currentFood: topFoods.first,
+        currentFood: selectedFood,
         isLoading: false,
         history: updatedHistory,
       );
