@@ -56,6 +56,58 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:55060102370:android:651f269b460ab9ea71f2bb",
+        "android_client_info": {
+          "package_name": "com.wheateat.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "55060102370-21dmdein20i6cm7p9ak7gh2djcc8ete5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.wheateat.app",
+            "certificate_hash": "f3fcb83152364e7a4689f194176f05684798f9f7"
+          }
+        },
+        {
+          "client_id": "55060102370-5re1dacprdfomegu430nkd1qv76ahn6p.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.wheateat.app",
+            "certificate_hash": "3845e064738f09d2c00af26bea65a0cc7f04a6e4"
+          }
+        },
+        {
+          "client_id": "55060102370-kv68udhnuvo0p4gjr2dt95paufck8iik.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDw4SDjLpdqATl0UXnD9DQAOKb1MMmI-E4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "55060102370-kv68udhnuvo0p4gjr2dt95paufck8iik.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "55060102370-1bs8vifn8p8biqjmj617kk2hcebpegdv.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.whatEatApp"
+              }
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"

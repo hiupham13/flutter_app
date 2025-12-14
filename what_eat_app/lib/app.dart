@@ -12,7 +12,7 @@ class WhatEatApp extends ConsumerWidget {
     final router = ref.watch(appRouterProvider);
 
     return MaterialApp.router(
-      title: 'Hôm Nay Ăn Gì?',
+      title: 'What Eat - Hôm Nay Ăn Gì?',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,

@@ -427,9 +427,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ],
           ),
           const Spacer(),
-          _buildInfoPill(
-            icon: Icons.place_outlined,
-            label: summary.location ?? 'Không rõ vị trí',
+          Flexible(
+            child: _buildInfoPill(
+              icon: Icons.place_outlined,
+              label: summary.location ?? 'Không rõ vị trí',
+            ),
           ),
         ],
       ),
@@ -684,12 +686,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         children: [
           Icon(icon, size: 16, color: Colors.white),
           const SizedBox(width: AppSpacing.xs),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
+          Flexible(
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
           ),
         ],
       ),
