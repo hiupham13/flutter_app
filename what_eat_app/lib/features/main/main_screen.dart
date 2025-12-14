@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+
 
 import '../../config/theme/style_tokens.dart';
 import '../../core/constants/app_colors.dart';
@@ -9,7 +9,6 @@ import '../search/presentation/search_screen.dart';
 import '../favorites/presentation/favorites_screen.dart';
 import '../recommendation/presentation/history_screen.dart';
 import '../user/presentation/profile_screen.dart';
-import '../auth/logic/auth_provider.dart';
 
 /// Main screen với bottom navigation bar
 class MainScreen extends ConsumerStatefulWidget {

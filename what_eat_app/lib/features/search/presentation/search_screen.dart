@@ -7,7 +7,7 @@ import '../../../core/widgets/empty_state_widget.dart';
 import '../../../core/widgets/food_image_card.dart';
 import '../../../core/widgets/price_badge.dart';
 import '../../../models/food_model.dart';
-import '../../recommendation/data/repositories/food_repository.dart';
+
 import '../../recommendation/logic/scoring_engine.dart';
 import '../logic/search_provider.dart';
 
