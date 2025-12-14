@@ -18,7 +18,7 @@ class UserRepository {
     required UserInfo info,
     required UserSettings settings,
   }) async {
-    final model = UserModel(
+    final model = UserModel.create(
       uid: uid,
       info: info,
       settings: settings,

@@ -1,7 +1,13 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../models/food_model.dart';
 import '../sources/food_firestore_service.dart';
 import '../../../../core/utils/logger.dart';
 import '../../../../core/services/cache_service.dart';
+
+/// Provider for FoodRepository singleton
+final foodRepositoryProvider = Provider<FoodRepository>((ref) {
+  return FoodRepository();
+});
 
 class FoodRepository {
   final FoodDataSource _dataSource;
@@ -34,26 +40,86 @@ class FoodRepository {
     }).toList();
   }
 
-  /// Lấy tất cả món ăn (ưu tiên cache, fallback Firestore)
+  /// Lấy tất cả món ăn với offline-first strategy
+  ///
+  /// Strategy:
+  /// 1. Try valid cache first (return immediately + background sync)
+  /// 2. If cache invalid, fetch from Firestore
+  /// 3. If Firestore fails, fallback to stale cache
   Future<List<FoodModel>> getAllFoods() async {
     List<FoodModel> cachedFoods = const [];
+    
     try {
+      // 1️⃣ TRY CACHE FIRST (Ưu tiên cache)
       cachedFoods = await _cache.getFoodsFromCache();
       if (cachedFoods.isNotEmpty && _cache.isCacheValid()) {
+        AppLogger.info('✅ Using valid cache (${cachedFoods.length} items, age: ${_cache.cacheAgeMinutes}min)');
+        
+        // 2️⃣ BACKGROUND SYNC (Không block UI)
+        _syncInBackground();
+        
+        return cachedFoods; // ⚡ Return ngay
+      }
+      
+      // 3️⃣ FETCH FROM FIRESTORE
+      AppLogger.info('📡 Fetching foods from Firestore (cache invalid)...');
+      final foods = await _dataSource.fetchAllFoods();
+      
+      if (foods.isEmpty) {
+        AppLogger.warning('Firestore returned empty list');
+        // Fallback to stale cache if available
+        if (cachedFoods.isNotEmpty) {
+          AppLogger.info('Using stale cache as fallback (${cachedFoods.length} items)');
+          return cachedFoods;
+        }
+        return [];
+      }
+      
+      // 4️⃣ SAVE TO CACHE
+      await _cache.saveFoodsToCache(foods);
+      AppLogger.info('✅ Fetched and cached ${foods.length} foods');
+      
+      return foods;
+      
+    } catch (e, st) {
+      AppLogger.error('getAllFoods failed: $e', e, st);
+      
+      // 5️⃣ FALLBACK TO STALE CACHE (Better than nothing)
+      if (cachedFoods.isNotEmpty) {
+        AppLogger.warning('⚠️ Using stale cache as fallback (${cachedFoods.length} items)');
         return cachedFoods;
       }
-
-      // Fetch from Firestore
+      
+      return [];
+    }
+  }
+  
+  /// Background sync - Fire and forget
+  /// Updates cache without blocking UI
+  Future<void> _syncInBackground() async {
+    try {
+      AppLogger.debug('🔄 Background sync started');
       final foods = await _dataSource.fetchAllFoods();
-
-      // Save to cache (best-effort)
-      await _cache.saveFoodsToCache(foods);
-
-      return foods;
+      
+      if (foods.isNotEmpty) {
+        await _cache.saveFoodsToCache(foods);
+        AppLogger.info('✅ Background sync completed (${foods.length} items)');
+      }
     } catch (e) {
-      AppLogger.error('Error getting all foods: $e');
-      // Fallback to stale cache if available
-      if (cachedFoods.isNotEmpty) return cachedFoods;
+      // Silent fail - background sync is best-effort
+      AppLogger.debug('Background sync failed (expected when offline): $e');
+    }
+  }
+  
+  /// Force refresh - Clears cache and fetches fresh data
+  /// Use for pull-to-refresh
+  Future<List<FoodModel>> refreshFoods() async {
+    try {
+      AppLogger.info('🔄 Force refresh requested');
+      await _cache.clearCache();
+      return await getAllFoods();
+    } catch (e, st) {
+      AppLogger.error('refreshFoods failed: $e', e, st);
       return [];
     }
   }

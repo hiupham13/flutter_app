@@ -39,20 +39,29 @@ class AuthRepository {
   }
 
   Future<UserCredential> signInWithGoogle() async {
-    final googleUser = await _googleSignIn.signIn();
-    if (googleUser == null) {
-      AppLogger.warning('Google sign-in cancelled by user');
-      throw FirebaseAuthException(
-        code: 'ERROR_ABORTED_BY_USER',
-        message: 'Người dùng đã huỷ đăng nhập Google',
+    try {
+      final googleUser = await _googleSignIn.signIn();
+      
+      if (googleUser == null) {
+        throw FirebaseAuthException(
+          code: 'ERROR_ABORTED_BY_USER',
+          message: 'Người dùng đã huỷ đăng nhập Google',
+        );
+      }
+      
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
       );
+      
+      final userCred = await _auth.signInWithCredential(credential);
+      return userCred;
+      
+    } catch (e, st) {
+      AppLogger.error('Google Sign In Error', e, st);
+      rethrow;
     }
-    final googleAuth = await googleUser.authentication;
-    final credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
-    return _auth.signInWithCredential(credential);
   }
 
   Future<UserCredential> signInWithFacebook() async {
