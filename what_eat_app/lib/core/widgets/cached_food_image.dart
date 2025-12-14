@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:what_eat_app/core/constants/app_colors.dart';
+import 'package:what_eat_app/core/services/cloudinary_service.dart';
 
 /// Widget hiển thị ảnh món ăn với caching tự động
 /// 
@@ -9,7 +11,8 @@ import 'package:what_eat_app/core/constants/app_colors.dart';
 /// - Hiển thị placeholder trong khi loading
 /// - Hiển thị error widget khi load thất bại
 /// - Fade-in animation khi ảnh load xong
-class CachedFoodImage extends StatelessWidget {
+/// - Tự động transform URL qua Cloudinary nếu cần
+class CachedFoodImage extends ConsumerWidget {
   /// URL của ảnh cần hiển thị
   final String imageUrl;
   
@@ -51,16 +54,25 @@ class CachedFoodImage extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Transform URL qua Cloudinary nếu cần
+    final cloudinaryService = ref.read(cloudinaryServiceProvider);
+    final transformedUrl = cloudinaryService.transformImageUrl(
+      imageUrl,
+      transformations: width != null 
+          ? 'c_fill,g_auto,q_auto,w_${(width! * 2).toInt()}'
+          : CloudinaryService.defaultFoodTransformations,
+    );
+    
     // Nếu imageUrl rỗng, hiển thị error widget ngay
-    if (imageUrl.isEmpty) {
+    if (transformedUrl.isEmpty) {
       return _buildDefaultErrorWidget();
     }
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
       child: CachedNetworkImage(
-        imageUrl: imageUrl,
+        imageUrl: transformedUrl,
         width: width,
         height: height,
         fit: fit,
@@ -160,7 +172,7 @@ class CachedFoodImage extends StatelessWidget {
 }
 
 /// Variant của CachedFoodImage cho circular avatar
-class CachedFoodAvatar extends StatelessWidget {
+class CachedFoodAvatar extends ConsumerWidget {
   final String imageUrl;
   final double radius;
   final Widget? placeholder;
@@ -175,14 +187,18 @@ class CachedFoodAvatar extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    if (imageUrl.isEmpty) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Transform URL qua Cloudinary cho avatar
+    final cloudinaryService = ref.read(cloudinaryServiceProvider);
+    final transformedUrl = cloudinaryService.transformAvatarUrl(imageUrl);
+    
+    if (transformedUrl.isEmpty) {
       return _buildDefaultAvatar();
     }
 
     return ClipOval(
       child: CachedNetworkImage(
-        imageUrl: imageUrl,
+        imageUrl: transformedUrl,
         width: radius * 2,
         height: radius * 2,
         fit: BoxFit.cover,
