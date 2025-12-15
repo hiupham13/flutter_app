@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -16,7 +17,9 @@ import '../../../../core/services/copywriting_service.dart';
 import '../../../../core/services/weather_service.dart';
 import '../../../../core/services/activity_log_service.dart';
 import '../../../../core/services/analytics_service.dart';
+import '../../../../core/services/cloudinary_service.dart';
 import '../../../../core/utils/logger.dart';
+import '../../../../models/food_model_extensions.dart';
 import '../../recommendation/logic/recommendation_provider.dart';
 import '../../recommendation/logic/scoring_engine.dart';
 import '../../recommendation/presentation/widgets/input_bottom_sheet.dart';
@@ -626,10 +629,33 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           (entry) {
             final index = entry.key;
             final food = entry.value;
+            // Sử dụng CloudinaryService với fallback giống như result screen
+            final cloudinaryService = ref.read(cloudinaryServiceProvider);
+            final imageUrl = food.getImageUrl(
+              cloudinaryService,
+              transformations: 'c_fill,g_auto,q_auto,w_800',
+              enableAutoFallback: true, // Bật auto fallback
+              enableLogging: kDebugMode, // Bật logging trong debug mode
+            );
+            
+            // Debug log trong debug mode
+            if (kDebugMode && imageUrl != null) {
+              AppLogger.info('🏠 Dashboard Screen - Food Image URL:');
+              AppLogger.info('   Food ID: ${food.id}');
+              AppLogger.info('   Food Name: ${food.name}');
+              AppLogger.info('   Images list: ${food.images}');
+              AppLogger.info('   Generated URL: $imageUrl');
+            } else if (kDebugMode && imageUrl == null) {
+              AppLogger.warning('⚠️ Dashboard Screen - No image URL found for:');
+              AppLogger.warning('   Food ID: ${food.id}');
+              AppLogger.warning('   Food Name: ${food.name}');
+              AppLogger.warning('   Images list: ${food.images}');
+            }
+            
             return Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.md),
               child: FoodImageCard(
-                imageUrl: food.images.isNotEmpty ? food.images.first : '',
+                imageUrl: imageUrl ?? '',
                 title: food.name,
                 subtitle: food.cuisineId,
                 priceBadge: PriceBadge(level: _mapPrice(food.priceSegment)),

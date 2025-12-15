@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/widgets/loading_indicator.dart';
@@ -8,7 +9,9 @@ import '../../../core/widgets/price_badge.dart';
 import '../../../core/widgets/cached_food_image.dart';
 import '../../../core/services/share_service.dart';
 import '../../../core/services/analytics_service.dart';
+import '../../../core/services/cloudinary_service.dart';
 import '../../../models/food_model.dart';
+import '../../../models/food_model_extensions.dart';
 import '../logic/favorites_provider.dart';
 import '../../../core/utils/logger.dart';
 
@@ -100,10 +103,37 @@ class FavoritesScreen extends ConsumerWidget {
               children: [
                 AspectRatio(
                   aspectRatio: 16 / 9,
-                  child: CachedFoodImage(
-                    imageUrl: food.images.isNotEmpty ? food.images.first : '',
-                    fit: BoxFit.cover,
-                    borderRadius: 0,
+                  child: Builder(
+                    builder: (context) {
+                      // Sử dụng CloudinaryService với fallback giống như result screen
+                      final cloudinaryService = ref.read(cloudinaryServiceProvider);
+                      final imageUrl = food.getImageUrl(
+                        cloudinaryService,
+                        transformations: 'c_fill,g_auto,q_auto,w_800',
+                        enableAutoFallback: true, // Bật auto fallback
+                        enableLogging: kDebugMode, // Bật logging trong debug mode
+                      );
+                      
+                      // Debug log trong debug mode
+                      if (kDebugMode && imageUrl != null) {
+                        AppLogger.info('❤️ Favorites Screen - Food Image URL:');
+                        AppLogger.info('   Food ID: ${food.id}');
+                        AppLogger.info('   Food Name: ${food.name}');
+                        AppLogger.info('   Images list: ${food.images}');
+                        AppLogger.info('   Generated URL: $imageUrl');
+                      } else if (kDebugMode && imageUrl == null) {
+                        AppLogger.warning('⚠️ Favorites Screen - No image URL found for:');
+                        AppLogger.warning('   Food ID: ${food.id}');
+                        AppLogger.warning('   Food Name: ${food.name}');
+                        AppLogger.warning('   Images list: ${food.images}');
+                      }
+                      
+                      return CachedFoodImage(
+                        imageUrl: imageUrl ?? '',
+                        fit: BoxFit.cover,
+                        borderRadius: 0,
+                      );
+                    },
                   ),
                 ),
                 // Remove button
