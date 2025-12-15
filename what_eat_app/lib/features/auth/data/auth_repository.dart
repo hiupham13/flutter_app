@@ -14,7 +14,11 @@ class AuthRepository {
     GoogleSignIn? googleSignIn,
     FacebookAuth? facebookAuth,
   })  : _auth = auth ?? FirebaseAuth.instance,
-        _googleSignIn = googleSignIn ?? GoogleSignIn(),
+        _googleSignIn = googleSignIn ?? GoogleSignIn(
+          // Web client ID từ google-services.json (client_type: 3)
+          // Cần thiết để Firebase Authentication xác thực credential
+          serverClientId: '55060102370-kv68udhnuvo0p4gjr2dt95paufck8iik.apps.googleusercontent.com',
+        ),
         _facebookAuth = facebookAuth ?? FacebookAuth.instance;
 
   Stream<User?> authStateChanges() => _auth.authStateChanges();
@@ -40,26 +44,74 @@ class AuthRepository {
 
   Future<UserCredential> signInWithGoogle() async {
     try {
+      AppLogger.info('🔵 [GoogleSignIn] Starting Google Sign-In process...');
+      AppLogger.info('   - serverClientId configured: ${_googleSignIn.serverClientId != null}');
+      
       final googleUser = await _googleSignIn.signIn();
       
       if (googleUser == null) {
+        AppLogger.warning('❌ [GoogleSignIn] User cancelled sign-in');
         throw FirebaseAuthException(
           code: 'ERROR_ABORTED_BY_USER',
           message: 'Người dùng đã huỷ đăng nhập Google',
         );
       }
       
+      AppLogger.info('✅ [GoogleSignIn] Google user obtained');
+      AppLogger.info('   - Email: ${googleUser.email}');
+      AppLogger.info('   - Display Name: ${googleUser.displayName}');
+      AppLogger.info('   - ID: ${googleUser.id}');
+      
+      AppLogger.info('🔵 [GoogleSignIn] Getting authentication tokens...');
       final googleAuth = await googleUser.authentication;
+      
+      if (googleAuth.idToken == null) {
+        AppLogger.error('❌ [GoogleSignIn] idToken is NULL!');
+        AppLogger.error('   - This usually means serverClientId is missing or incorrect');
+        AppLogger.error('   - Current serverClientId: ${_googleSignIn.serverClientId}');
+        throw FirebaseAuthException(
+          code: 'ERROR_MISSING_ID_TOKEN',
+          message: 'Không lấy được idToken từ Google. Vui lòng kiểm tra cấu hình serverClientId.',
+        );
+      }
+      
+      if (googleAuth.accessToken == null) {
+        AppLogger.error('❌ [GoogleSignIn] accessToken is NULL!');
+        throw FirebaseAuthException(
+          code: 'ERROR_MISSING_ACCESS_TOKEN',
+          message: 'Không lấy được accessToken từ Google.',
+        );
+      }
+      
+      AppLogger.info('✅ [GoogleSignIn] Authentication tokens obtained');
+      AppLogger.info('   - idToken: ${googleAuth.idToken?.substring(0, 20)}...');
+      AppLogger.info('   - accessToken: ${googleAuth.accessToken?.substring(0, 20)}...');
+      
+      AppLogger.info('🔵 [GoogleSignIn] Creating Firebase credential...');
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
       
+      AppLogger.info('🔵 [GoogleSignIn] Signing in with Firebase...');
       final userCred = await _auth.signInWithCredential(credential);
+      
+      AppLogger.info('✅ [GoogleSignIn] Firebase sign-in successful!');
+      AppLogger.info('   - Firebase UID: ${userCred.user?.uid}');
+      AppLogger.info('   - Firebase Email: ${userCred.user?.email}');
+      
       return userCred;
       
+    } on FirebaseAuthException catch (e, st) {
+      AppLogger.error('❌ [GoogleSignIn] FirebaseAuthException', e, st);
+      AppLogger.error('   - Error Code: ${e.code}');
+      AppLogger.error('   - Error Message: ${e.message}');
+      AppLogger.error('   - Error Details: ${e.toString()}');
+      rethrow;
     } catch (e, st) {
-      AppLogger.error('Google Sign In Error', e, st);
+      AppLogger.error('❌ [GoogleSignIn] Unexpected error', e, st);
+      AppLogger.error('   - Error Type: ${e.runtimeType}');
+      AppLogger.error('   - Error Message: $e');
       rethrow;
     }
   }

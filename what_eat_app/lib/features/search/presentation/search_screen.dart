@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -6,7 +7,10 @@ import '../../../core/widgets/loading_indicator.dart';
 import '../../../core/widgets/empty_state_widget.dart';
 import '../../../core/widgets/food_image_card.dart';
 import '../../../core/widgets/price_badge.dart';
+import '../../../core/services/cloudinary_service.dart';
+import '../../../core/utils/logger.dart';
 import '../../../models/food_model.dart';
+import '../../../models/food_model_extensions.dart';
 
 import '../../recommendation/logic/scoring_engine.dart';
 import '../logic/search_provider.dart';
@@ -260,10 +264,33 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       itemCount: results.length,
       itemBuilder: (context, index) {
         final food = results[index];
+        // Sử dụng CloudinaryService với fallback giống như result screen
+        final cloudinaryService = ref.read(cloudinaryServiceProvider);
+        final imageUrl = food.getImageUrl(
+          cloudinaryService,
+          transformations: 'c_fill,g_auto,q_auto,w_800',
+          enableAutoFallback: true, // Bật auto fallback
+          enableLogging: kDebugMode, // Bật logging trong debug mode
+        );
+        
+        // Debug log trong debug mode
+        if (kDebugMode && imageUrl != null) {
+          AppLogger.info('🔍 Search Screen - Food Image URL:');
+          AppLogger.info('   Food ID: ${food.id}');
+          AppLogger.info('   Food Name: ${food.name}');
+          AppLogger.info('   Images list: ${food.images}');
+          AppLogger.info('   Generated URL: $imageUrl');
+        } else if (kDebugMode && imageUrl == null) {
+          AppLogger.warning('⚠️ Search Screen - No image URL found for:');
+          AppLogger.warning('   Food ID: ${food.id}');
+          AppLogger.warning('   Food Name: ${food.name}');
+          AppLogger.warning('   Images list: ${food.images}');
+        }
+        
         return Padding(
           padding: const EdgeInsets.only(bottom: 16),
           child: FoodImageCard(
-            imageUrl: food.images.isNotEmpty ? food.images.first : '',
+            imageUrl: imageUrl ?? '',
             title: food.name,
             subtitle: '${food.cuisineId} • ${food.mealTypeId}',
             priceBadge: PriceBadge(level: _mapPrice(food.priceSegment)),

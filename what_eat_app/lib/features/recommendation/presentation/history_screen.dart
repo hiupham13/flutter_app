@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -11,6 +12,8 @@ import '../../../core/widgets/empty_state_widget.dart';
 import '../../../core/widgets/cached_food_image.dart';
 import '../../../core/widgets/price_badge.dart';
 import '../../../core/utils/logger.dart';
+import '../../../core/services/cloudinary_service.dart';
+import '../../../models/food_model_extensions.dart';
 import '../logic/history_provider.dart';
 import '../logic/scoring_engine.dart';
 
@@ -159,12 +162,39 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             SizedBox(
               width: 120,
               height: 100,
-              child: CachedFoodImage(
-                imageUrl: item.food.images.isNotEmpty
-                    ? item.food.images.first
-                    : '',
-                fit: BoxFit.cover,
-                borderRadius: 0,
+              child: Builder(
+                builder: (context) {
+                  // Sử dụng CloudinaryService với fallback giống như result screen
+                  final cloudinaryService = ref.read(cloudinaryServiceProvider);
+                  final imageUrl = item.food.getImageUrl(
+                    cloudinaryService,
+                    transformations: 'c_fill,g_auto,q_auto,w_240',
+                    enableAutoFallback: true, // Bật auto fallback để tự tạo URL từ food.id nếu images list không hợp lệ
+                    enableLogging: kDebugMode, // Bật logging trong debug mode
+                  );
+                  
+                  // Debug log trong debug mode
+                  if (kDebugMode && imageUrl != null) {
+                    AppLogger.info('📜 History Screen - Food Image URL:');
+                    AppLogger.info('   Food ID: ${item.food.id}');
+                    AppLogger.info('   Food Name: ${item.food.name}');
+                    AppLogger.info('   Images list: ${item.food.images}');
+                    AppLogger.info('   Generated URL: $imageUrl');
+                  } else if (kDebugMode && imageUrl == null) {
+                    AppLogger.warning('⚠️ History Screen - No image URL found for:');
+                    AppLogger.warning('   Food ID: ${item.food.id}');
+                    AppLogger.warning('   Food Name: ${item.food.name}');
+                    AppLogger.warning('   Images list: ${item.food.images}');
+                  }
+                  
+                  return CachedFoodImage(
+                    imageUrl: imageUrl ?? '',
+                    width: 120,
+                    height: 100,
+                    fit: BoxFit.cover,
+                    borderRadius: 0,
+                  );
+                },
               ),
             ),
 

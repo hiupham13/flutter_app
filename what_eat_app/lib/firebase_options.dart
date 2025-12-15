@@ -52,7 +52,8 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyDw4SDjLpdqATl0UXnD9DQAOKb1MMmI-E4',
-    appId: '1:55060102370:android:17885e2b7655f3f571f2bb',
+    // ✅ Sử dụng appId của com.wheateat.app (app thứ 2) - đã có SHA-1
+    appId: '1:55060102370:android:651f269b460ab9ea71f2bb',
     messagingSenderId: '55060102370',
     projectId: 'futter-app-a0120',
     storageBucket: 'futter-app-a0120.firebasestorage.app',

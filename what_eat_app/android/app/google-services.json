@@ -82,6 +82,14 @@
           }
         },
         {
+          "client_id": "55060102370-ura0bg3nd1il9ct86st9sdftlq5rk0h0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.wheateat.app",
+            "certificate_hash": "04b1339f3fa4eaebf343af80436406ae04fc43a1"
+          }
+        },
+        {
           "client_id": "55060102370-kv68udhnuvo0p4gjr2dt95paufck8iik.apps.googleusercontent.com",
           "client_type": 3
         }
