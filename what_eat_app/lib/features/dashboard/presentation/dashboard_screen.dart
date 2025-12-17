@@ -635,22 +635,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               cloudinaryService,
               transformations: 'c_fill,g_auto,q_auto,w_800',
               enableAutoFallback: true, // Bật auto fallback
-              enableLogging: kDebugMode, // Bật logging trong debug mode
+              enableLogging: false, // Tắt logging để tránh spam log
             );
             
-            // Debug log trong debug mode
-            if (kDebugMode && imageUrl != null) {
-              AppLogger.info('🏠 Dashboard Screen - Food Image URL:');
-              AppLogger.info('   Food ID: ${food.id}');
-              AppLogger.info('   Food Name: ${food.name}');
-              AppLogger.info('   Images list: ${food.images}');
-              AppLogger.info('   Generated URL: $imageUrl');
-            } else if (kDebugMode && imageUrl == null) {
-              AppLogger.warning('⚠️ Dashboard Screen - No image URL found for:');
-              AppLogger.warning('   Food ID: ${food.id}');
-              AppLogger.warning('   Food Name: ${food.name}');
-              AppLogger.warning('   Images list: ${food.images}');
-            }
+            // Debug log trong debug mode - Đã comment để tránh spam log
+            // if (kDebugMode && imageUrl != null) {
+            //   AppLogger.info('🏠 Dashboard Screen - Food Image URL:');
+            //   AppLogger.info('   Food ID: ${food.id}');
+            //   AppLogger.info('   Food Name: ${food.name}');
+            //   AppLogger.info('   Images list: ${food.images}');
+            //   AppLogger.info('   Generated URL: $imageUrl');
+            // } else if (kDebugMode && imageUrl == null) {
+            //   AppLogger.warning('⚠️ Dashboard Screen - No image URL found for:');
+            //   AppLogger.warning('   Food ID: ${food.id}');
+            //   AppLogger.warning('   Food Name: ${food.name}');
+            //   AppLogger.warning('   Images list: ${food.images}');
+            // }
             
             return Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.md),

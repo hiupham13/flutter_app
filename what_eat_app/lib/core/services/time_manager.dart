@@ -1,7 +1,11 @@
+import '../interfaces/time_manager_interface.dart';
+
 /// Service quản lý thời gian và xác định khung giờ ăn
-class TimeManager {
+/// Implements ITimeManager interface (DIP)
+class TimeManager implements ITimeManager {
   /// Xác định time of day dựa trên giờ hiện tại
   /// Returns: "morning", "lunch", "dinner", "late_night"
+  @override
   String getTimeOfDay() {
     final now = DateTime.now();
     final hour = now.hour;
@@ -25,6 +29,7 @@ class TimeManager {
   }
 
   /// Lấy label tiếng Việt cho time of day
+  @override
   String getTimeOfDayLabel(String timeOfDay) {
     switch (timeOfDay) {
       case 'morning':
@@ -41,12 +46,20 @@ class TimeManager {
   }
 
   /// Kiểm tra xem món ăn có bán ở thời điểm hiện tại không
+  @override
   bool isFoodAvailableNow(List<String> availableTimes) {
     final currentTime = getTimeOfDay();
     return availableTimes.contains(currentTime);
   }
 
+  /// Get current DateTime
+  @override
+  DateTime getCurrentDateTime() {
+    return DateTime.now();
+  }
+
   /// Lấy greeting message theo time of day
+  @override
   String getTimeGreeting() {
     final timeOfDay = getTimeOfDay();
     switch (timeOfDay) {

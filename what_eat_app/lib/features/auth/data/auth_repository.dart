@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -107,11 +108,38 @@ class AuthRepository {
       AppLogger.error('   - Error Code: ${e.code}');
       AppLogger.error('   - Error Message: ${e.message}');
       AppLogger.error('   - Error Details: ${e.toString()}');
+      
+      // Gửi lỗi lên Crashlytics để theo dõi trên Play Store
+      await FirebaseCrashlytics.instance.recordError(
+        e,
+        st,
+        reason: 'Google Sign-In failed: ${e.code}',
+        fatal: false,
+        information: [
+          'Error Code: ${e.code}',
+          'Error Message: ${e.message}',
+          'Server Client ID configured: ${_googleSignIn.serverClientId != null}',
+        ],
+      );
+      
       rethrow;
     } catch (e, st) {
       AppLogger.error('❌ [GoogleSignIn] Unexpected error', e, st);
       AppLogger.error('   - Error Type: ${e.runtimeType}');
       AppLogger.error('   - Error Message: $e');
+      
+      // Gửi lỗi lên Crashlytics để theo dõi trên Play Store
+      await FirebaseCrashlytics.instance.recordError(
+        e,
+        st,
+        reason: 'Google Sign-In unexpected error: ${e.runtimeType}',
+        fatal: false,
+        information: [
+          'Error Type: ${e.runtimeType}',
+          'Error Message: $e',
+        ],
+      );
+      
       rethrow;
     }
   }
@@ -145,9 +173,26 @@ class AuthRepository {
   }
 
   Future<void> signOut() async {
-    await _auth.signOut();
-    await _googleSignIn.signOut();
-    await _facebookAuth.logOut();
+    try {
+      await _auth.signOut();
+    } catch (e, st) {
+      AppLogger.error('❌ [signOut] Firebase Auth signOut failed', e, st);
+      // Continue với các signOut khác
+    }
+    
+    try {
+      await _googleSignIn.signOut();
+    } catch (e, st) {
+      AppLogger.error('❌ [signOut] Google Sign-In signOut failed', e, st);
+      // Continue với Facebook signOut
+    }
+    
+    try {
+      await _facebookAuth.logOut();
+    } catch (e, st) {
+      AppLogger.error('❌ [signOut] Facebook Auth logOut failed', e, st);
+      // Log nhưng không throw - signOut vẫn thành công nếu Firebase Auth đã signOut
+    }
   }
 }
 

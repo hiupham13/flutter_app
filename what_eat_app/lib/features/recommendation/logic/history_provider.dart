@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 
 import '../../../models/food_model.dart';
 import '../../../core/utils/logger.dart';
@@ -118,8 +119,15 @@ class HistoryController extends StateNotifier<HistoryState> {
       );
 
       AppLogger.info('History loaded: ${historyFoodItems.length} items');
-    } catch (e) {
-      AppLogger.error('Load history failed: $e');
+    } catch (e, st) {
+      // Standardized error handling: Log + Crashlytics
+      AppLogger.error('Load history failed: $e', e, st);
+      FirebaseCrashlytics.instance.recordError(
+        e,
+        st,
+        reason: 'Load history failed',
+        fatal: false,
+      );
       state = state.copyWith(
         isLoading: false,
         error: 'Không thể tải lịch sử: $e',
@@ -157,8 +165,15 @@ class HistoryController extends StateNotifier<HistoryState> {
 
       state = state.copyWith(groupedHistory: updatedGroups);
       AppLogger.info('History item deleted: $historyId');
-    } catch (e) {
-      AppLogger.error('Delete history item failed: $e');
+    } catch (e, st) {
+      // Standardized error handling: Log + Crashlytics
+      AppLogger.error('Delete history item failed: $e', e, st);
+      FirebaseCrashlytics.instance.recordError(
+        e,
+        st,
+        reason: 'Delete history item failed',
+        fatal: false,
+      );
       state = state.copyWith(error: 'Không thể xóa: $e');
     }
   }
@@ -172,8 +187,15 @@ class HistoryController extends StateNotifier<HistoryState> {
       await _historyRepo.clearAllHistory(userId: userId);
       state = state.copyWith(groupedHistory: []);
       AppLogger.info('All history cleared');
-    } catch (e) {
-      AppLogger.error('Clear all history failed: $e');
+    } catch (e, st) {
+      // Standardized error handling: Log + Crashlytics
+      AppLogger.error('Clear all history failed: $e', e, st);
+      FirebaseCrashlytics.instance.recordError(
+        e,
+        st,
+        reason: 'Clear all history failed',
+        fatal: false,
+      );
       state = state.copyWith(error: 'Không thể xóa tất cả: $e');
     }
   }

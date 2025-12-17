@@ -2,7 +2,7 @@ name: what_eat_app
 description: "Hôm Nay Ăn Gì? - Smart Context-Aware Food Recommendation App"
 publish_to: 'none'
 
-version: 1.0.0+6
+version: 1.0.0+9
 
 environment:
   sdk: ^3.10.0

@@ -1,9 +1,19 @@
-import 'dart:math';
+import 'dart:math' as math;
 
 import '../../../../models/food_model.dart';
 import '../../../../core/services/weather_service.dart';
+import '../../../../core/interfaces/time_manager_interface.dart';
 import '../../../../core/services/time_manager.dart';
 import '../../../../core/utils/logger.dart';
+import 'scoring_weights.dart';
+import '../interfaces/scorer_interfaces.dart';
+import 'location_scorer.dart';
+import 'popularity_scorer.dart';
+import 'dietary_restriction_scorer.dart';
+import 'time_availability_scorer.dart';
+
+// Export DietaryRestriction for use in RecommendationContext
+export 'dietary_restriction_scorer.dart' show DietaryRestriction;
 
 /// Context input cho thuật toán gợi ý
 class RecommendationContext {
@@ -18,6 +28,7 @@ class RecommendationContext {
   final List<String> blacklistedFoods;
   final bool isVegetarian;
   final int spiceTolerance; // 0-5
+  final List<DietaryRestriction> dietaryRestrictions; // 🆕 Keto, vegan, halal, etc.
 
   RecommendationContext({
     this.weather,
@@ -31,22 +42,84 @@ class RecommendationContext {
     this.blacklistedFoods = const [],
     this.isVegetarian = false,
     this.spiceTolerance = 2,
+    this.dietaryRestrictions = const [],
   });
+  
+  /// Create copy with updated values
+  RecommendationContext copyWith({
+    WeatherData? weather,
+    int? budget,
+    String? companion,
+    String? mood,
+    List<String>? excludedFoods,
+    List<String>? excludedAllergens,
+    List<String>? favoriteCuisines,
+    List<String>? recentlyEaten,
+    List<String>? blacklistedFoods,
+    bool? isVegetarian,
+    int? spiceTolerance,
+    List<DietaryRestriction>? dietaryRestrictions,
+  }) {
+    return RecommendationContext(
+      weather: weather ?? this.weather,
+      budget: budget ?? this.budget,
+      companion: companion ?? this.companion,
+      mood: mood ?? this.mood,
+      excludedFoods: excludedFoods ?? this.excludedFoods,
+      excludedAllergens: excludedAllergens ?? this.excludedAllergens,
+      favoriteCuisines: favoriteCuisines ?? this.favoriteCuisines,
+      recentlyEaten: recentlyEaten ?? this.recentlyEaten,
+      blacklistedFoods: blacklistedFoods ?? this.blacklistedFoods,
+      isVegetarian: isVegetarian ?? this.isVegetarian,
+      spiceTolerance: spiceTolerance ?? this.spiceTolerance,
+      dietaryRestrictions: dietaryRestrictions ?? this.dietaryRestrictions,
+    );
+  }
 }
 
 /// Engine tính điểm cho món ăn dựa trên ngữ cảnh
+/// Follows Dependency Inversion Principle (DIP) - depends on abstractions
 class ScoringEngine {
-  final TimeManager _timeManager = TimeManager();
+  final ITimeManager _timeManager;
+  final ScoringWeights _weights;
+  final ILocationScorer _locationScorer;
+  final IPopularityScorer _popularityScorer;
+  final IDietaryRestrictionScorer _dietaryScorer;
+  final ITimeAvailabilityScorer _timeAvailabilityScorer;
   String? _cachedTimeOfDay; // ⚡ Cache time of day across scoring session
+  Map<String, double>? _cachedLocationMultipliers; // ⚡ Cache location multipliers
+  
+  ScoringEngine({
+    ScoringWeights? weights,
+    ITimeManager? timeManager,
+    ILocationScorer? locationScorer,
+    IPopularityScorer? popularityScorer,
+    IDietaryRestrictionScorer? dietaryScorer,
+    ITimeAvailabilityScorer? timeAvailabilityScorer,
+  })  : _weights = weights ?? ScoringWeights.defaultWeights,
+        _timeManager = timeManager ?? TimeManager(),
+        _locationScorer = locationScorer ?? LocationScorer() as ILocationScorer,
+        _popularityScorer = popularityScorer ?? PopularityScorer() as IPopularityScorer,
+        _dietaryScorer = dietaryScorer ?? DietaryRestrictionScorer() as IDietaryRestrictionScorer,
+        _timeAvailabilityScorer = timeAvailabilityScorer ?? TimeAvailabilityScorer() as ITimeAvailabilityScorer;
   
   /// Reset cache when starting new recommendation session
   void resetCache() {
     _cachedTimeOfDay = null;
+    _cachedLocationMultipliers = null;
+  }
+  
+  /// Pre-calculate location multipliers for all foods (async)
+  /// Call this before scoring to cache location data
+  Future<void> precalculateLocationMultipliers(List<FoodModel> foods) async {
+    if (_cachedLocationMultipliers == null) {
+      _cachedLocationMultipliers = await _locationScorer.preCalculateLocationMultipliers(foods);
+    }
   }
   
   /// ⚡ OPTIMIZED: Faster multiplier calculation with caching
-  /// Tính điểm cho một món ăn
-  /// Công thức: FINAL_SCORE = (BASE_SCORE * MULTIPLIERS) + RANDOM_FACTOR
+  /// Tính điểm cho một món ăn với weighted scoring
+  /// Công thức: FINAL_SCORE = (BASE_SCORE * WEIGHTED_MULTIPLIERS) + RANDOM_FACTOR
   double calculateScore(FoodModel food, RecommendationContext context) {
     // Hard filters already passed at this point
     double score = 100.0; // Base score
@@ -54,24 +127,60 @@ class ScoringEngine {
     // ⚡ Cache time of day (called once per session, not per food)
     _cachedTimeOfDay ??= _timeManager.getTimeOfDay();
 
-    // Fast multipliers using direct map lookups
-    score *= _getWeatherMultiplier(food, context.weather);
-    score *= food.contextScores['companion_${context.companion}'] ?? 1.0;
-    score *= context.mood != null ? (food.contextScores['mood_${context.mood}'] ?? 1.0) : 1.0;
-    score *= _getBudgetMultiplier(food, context.budget);
-    score *= _getTimeAvailabilityMultiplier(food);
-    score *= food.contextScores['time_$_cachedTimeOfDay'] ?? 1.0;
+    // Weighted multipliers using linear weighting
+    // Formula: score *= multiplier * (1 + (weight - 1) * 0.5)
+    // This allows weights > 1 to amplify, weights < 1 to reduce impact
+    final weatherMultiplier = _getWeatherMultiplier(food, context.weather);
+    score *= weatherMultiplier * (1.0 + (_weights.weatherWeight - 1.0) * 0.5);
     
-    // Simple inline multipliers
+    final companionMultiplier = food.contextScores['companion_${context.companion}'] ?? 1.0;
+    score *= companionMultiplier * (1.0 + (_weights.companionWeight - 1.0) * 0.5);
+    
+    if (context.mood != null) {
+      final moodMultiplier = food.contextScores['mood_${context.mood}'] ?? 1.0;
+      score *= moodMultiplier * (1.0 + (_weights.moodWeight - 1.0) * 0.5);
+    }
+    
+    final budgetMultiplier = _getBudgetMultiplier(food, context.budget);
+    score *= budgetMultiplier * (1.0 + (_weights.budgetWeight - 1.0) * 0.5);
+    
+    final timeAvailabilityMultiplier = _getTimeAvailabilityMultiplier(food);
+    score *= timeAvailabilityMultiplier * (1.0 + (_weights.timeWeight - 1.0) * 0.5);
+    
+    final timeOfDayMultiplier = food.contextScores['time_$_cachedTimeOfDay'] ?? 1.0;
+    score *= timeOfDayMultiplier * (1.0 + (_weights.timeWeight - 1.0) * 0.5);
+    
+    // Personalization multipliers (weighted)
     if (context.favoriteCuisines.isNotEmpty && context.favoriteCuisines.contains(food.cuisineId)) {
-      score *= 1.2;
+      score *= 1.2 * (1.0 + (_weights.personalizationWeight - 1.0) * 0.5);
     }
     if (context.recentlyEaten.contains(food.id)) {
-      score *= 0.7;
+      score *= 0.7 * (1.0 + (_weights.personalizationWeight - 1.0) * 0.5);
     }
+    
+    // 🆕 Location scoring (from cache)
+    final locationMultiplier = _cachedLocationMultipliers?[food.id] ?? 1.0;
+    score *= locationMultiplier * (1.0 + (_weights.popularityWeight - 1.0) * 0.5);
+    
+    // 🆕 Popularity scoring
+    final popularityMultiplier = _popularityScorer.getCombinedMultiplier(food);
+    score *= popularityMultiplier * (1.0 + (_weights.popularityWeight - 1.0) * 0.5);
+    
+    // 🆕 Dietary restrictions scoring
+    if (context.dietaryRestrictions.isNotEmpty) {
+      final dietaryMultiplier = _dietaryScorer.getDietaryMultiplier(
+        food,
+        context.dietaryRestrictions,
+      );
+      score *= dietaryMultiplier; // Hard filter if doesn't match
+    }
+    
+    // 🆕 Enhanced time availability scoring
+    final enhancedTimeMultiplier = _timeAvailabilityScorer.getAvailabilityMultiplier(food);
+    score *= enhancedTimeMultiplier * (1.0 + (_weights.timeWeight - 1.0) * 0.5);
 
     // Random factor (0-10% để tạo sự đa dạng)
-    score += score * 0.1 * Random().nextDouble();
+    score += score * 0.1 * math.Random().nextDouble();
 
     return score;
   }
@@ -95,6 +204,14 @@ class ScoringEngine {
       final isVegetarianFood = food.flavorProfile.contains('vegetarian') ||
                                food.contextScores['is_vegetarian'] == 1.0;
       if (!isVegetarianFood) return false;
+    }
+    
+    // 🆕 Check dietary restrictions (hard filter)
+    if (context.dietaryRestrictions.isNotEmpty) {
+      final dietaryScorer = DietaryRestrictionScorer();
+      if (!dietaryScorer.matchesRestrictions(food, context.dietaryRestrictions)) {
+        return false;
+      }
     }
     
     return true;
@@ -159,11 +276,11 @@ class ScoringEngine {
   /// ⚡ OPTIMIZED: Two-pass strategy with lazy evaluation
   /// Pass 1: Fast hard filters
   /// Pass 2: Score only qualified foods with early exit
-  List<FoodModel> getTopFoods(
+  Future<List<FoodModel>> getTopFoods(
     List<FoodModel> foods,
     RecommendationContext context,
     int topN,
-  ) {
+  ) async {
     AppLogger.info('⚡ Filtering ${foods.length} foods...');
     
     // Reset cache for new session
@@ -180,6 +297,9 @@ class ScoringEngine {
     AppLogger.info('⚡ ${qualified.length} foods passed hard filters');
     
     if (qualified.isEmpty) return [];
+    
+    // 🆕 Pre-calculate location multipliers (async, but cache for session)
+    await precalculateLocationMultipliers(qualified);
     
     // ⚡ PASS 2: Score qualified foods with early exit
     final candidates = <MapEntry<FoodModel, double>>[];

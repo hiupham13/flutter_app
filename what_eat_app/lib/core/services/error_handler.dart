@@ -9,17 +9,26 @@ import '../utils/logger.dart';
 class AppErrorHandler {
   /// Call once in main() after Firebase init.
   static Future<void> init() async {
+    // Bật Crashlytics collection (tự động tắt trong debug mode)
     await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
+    
+    // Set user identifier nếu có (sẽ được set sau khi login)
+    // FirebaseCrashlytics.instance.setUserIdentifier('user_id');
 
     FlutterError.onError = (FlutterErrorDetails details) async {
-      // Forward to Crashlytics and log
+      // Forward to Crashlytics và log
       FirebaseCrashlytics.instance.recordFlutterError(details);
       AppLogger.error('FlutterError: ${details.exceptionAsString()}',
           details.exception, details.stack);
     };
 
     PlatformDispatcher.instance.onError = (error, stack) {
-      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      FirebaseCrashlytics.instance.recordError(
+        error,
+        stack,
+        fatal: true,
+        reason: 'Platform error',
+      );
       AppLogger.error('Platform error: $error', error, stack);
       return true;
     };

@@ -3,13 +3,15 @@ import '../../../../models/food_model.dart';
 import '../sources/food_firestore_service.dart';
 import '../../../../core/utils/logger.dart';
 import '../../../../core/services/cache_service.dart';
+import '../../interfaces/repository_interfaces.dart';
 
 /// Provider for FoodRepository singleton
-final foodRepositoryProvider = Provider<FoodRepository>((ref) {
+/// Returns interface (DIP)
+final foodRepositoryProvider = Provider<IFoodRepository>((ref) {
   return FoodRepository();
 });
 
-class FoodRepository {
+class FoodRepository implements IFoodRepository {
   final FoodDataSource _dataSource;
   final CacheService _cache;
 
