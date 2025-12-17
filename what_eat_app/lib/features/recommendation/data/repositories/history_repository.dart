@@ -3,13 +3,16 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../core/utils/logger.dart';
 import '../../../../models/food_model.dart';
 import '../../logic/scoring_engine.dart';
+import '../../interfaces/repository_interfaces.dart';
 
-class HistoryRepository {
+/// History repository implementing IHistoryRepository interface (DIP)
+class HistoryRepository implements IHistoryRepository {
   final FirebaseFirestore _firestore;
 
   HistoryRepository({FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseFirestore.instance;
 
+  @override
   Future<void> addHistory({
     required String userId,
     required FoodModel food,
@@ -49,6 +52,7 @@ class HistoryRepository {
     }
   }
 
+  @override
   Future<List<String>> fetchHistoryFoodIds({
     required String userId,
     int limit = 20,
@@ -139,6 +143,61 @@ class HistoryRepository {
     } catch (e) {
       AppLogger.error('Failed to clear history: $e');
       rethrow;
+    }
+  }
+  
+  /// Add user action for feedback learning
+  @override
+  Future<void> addUserAction({
+    required String userId,
+    required String foodId,
+    required String action, // 'pick', 'skip', 'favorite', 'reject'
+    RecommendationContext? context,
+  }) async {
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('user_actions')
+          .add({
+        'food_id': foodId,
+        'action': action,
+        'timestamp': FieldValue.serverTimestamp(),
+        'context': context != null ? {
+          'budget': context.budget,
+          'companion': context.companion,
+          'mood': context.mood,
+        } : null,
+      });
+    } catch (e) {
+      AppLogger.error('Failed to add user action: $e');
+    }
+  }
+  
+  /// Fetch history food IDs with days filter (overloaded method)
+  @override
+  Future<List<String>> fetchHistoryFoodIdsWithDays({
+    required String userId,
+    int days = 7,
+  }) async {
+    try {
+      final cutoffDate = DateTime.now().subtract(Duration(days: days));
+      
+      final snapshot = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('recommendation_history')
+          .where('timestamp', isGreaterThan: Timestamp.fromDate(cutoffDate))
+          .orderBy('timestamp', descending: true)
+          .get();
+
+      return snapshot.docs
+          .map((doc) => doc.data()['food_id'] as String? ?? '')
+          .where((id) => id.isNotEmpty)
+          .toList();
+    } catch (e) {
+      AppLogger.error('Failed to fetch history: $e');
+      return [];
     }
   }
 }

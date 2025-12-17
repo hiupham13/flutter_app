@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 
 import '../data/auth_repository.dart';
 import '../data/repositories/user_repository.dart';
@@ -26,8 +27,22 @@ class AuthController extends StateNotifier<AsyncValue<User?>> {
       final cred = await _repo.signInWithEmail(email: email, password: password);
       state = AsyncValue.data(cred.user);
     } on FirebaseAuthException catch (e, st) {
+      // Gửi lỗi lên Crashlytics
+      FirebaseCrashlytics.instance.recordError(
+        e,
+        st,
+        reason: 'Email sign-in failed: ${e.code}',
+        fatal: false,
+      );
       state = AsyncValue.error(e.message ?? 'Đăng nhập thất bại', st);
     } catch (e, st) {
+      // Gửi lỗi lên Crashlytics
+      FirebaseCrashlytics.instance.recordError(
+        e,
+        st,
+        reason: 'Email sign-in unexpected error',
+        fatal: false,
+      );
       state = AsyncValue.error('Đăng nhập thất bại', st);
     }
   }
@@ -54,9 +69,35 @@ class AuthController extends StateNotifier<AsyncValue<User?>> {
       
     } on FirebaseAuthException catch (e, st) {
       print('❌ [AuthController] FirebaseAuthException: ${e.code} - ${e.message}');
+      
+      // Gửi lỗi lên Crashlytics để theo dõi trên Play Store
+      FirebaseCrashlytics.instance.recordError(
+        e,
+        st,
+        reason: 'Google Sign-In failed in AuthController: ${e.code}',
+        fatal: false,
+        information: [
+          'Error Code: ${e.code}',
+          'Error Message: ${e.message}',
+        ],
+      );
+      
       state = AsyncValue.error(e.message ?? 'Đăng nhập Google thất bại', st);
     } catch (e, st) {
       print('❌ [AuthController] Error: $e');
+      
+      // Gửi lỗi lên Crashlytics để theo dõi trên Play Store
+      FirebaseCrashlytics.instance.recordError(
+        e,
+        st,
+        reason: 'Google Sign-In unexpected error in AuthController',
+        fatal: false,
+        information: [
+          'Error Type: ${e.runtimeType}',
+          'Error Message: $e',
+        ],
+      );
+      
       state = AsyncValue.error('Đăng nhập Google thất bại', st);
     }
   }
@@ -67,8 +108,22 @@ class AuthController extends StateNotifier<AsyncValue<User?>> {
       final cred = await _repo.signInWithFacebook();
       state = AsyncValue.data(cred.user);
     } on FirebaseAuthException catch (e, st) {
+      // Gửi lỗi lên Crashlytics
+      FirebaseCrashlytics.instance.recordError(
+        e,
+        st,
+        reason: 'Facebook sign-in failed: ${e.code}',
+        fatal: false,
+      );
       state = AsyncValue.error(e.message ?? 'Đăng nhập Facebook thất bại', st);
     } catch (e, st) {
+      // Gửi lỗi lên Crashlytics
+      FirebaseCrashlytics.instance.recordError(
+        e,
+        st,
+        reason: 'Facebook sign-in unexpected error',
+        fatal: false,
+      );
       state = AsyncValue.error('Đăng nhập Facebook thất bại', st);
     }
   }
@@ -97,8 +152,22 @@ class AuthController extends StateNotifier<AsyncValue<User?>> {
       
       state = AsyncValue.data(cred.user);
     } on FirebaseAuthException catch (e, st) {
+      // Gửi lỗi lên Crashlytics
+      FirebaseCrashlytics.instance.recordError(
+        e,
+        st,
+        reason: 'Sign-up failed: ${e.code}',
+        fatal: false,
+      );
       state = AsyncValue.error(e.message ?? 'Đăng ký thất bại', st);
     } catch (e, st) {
+      // Gửi lỗi lên Crashlytics
+      FirebaseCrashlytics.instance.recordError(
+        e,
+        st,
+        reason: 'Sign-up unexpected error',
+        fatal: false,
+      );
       state = AsyncValue.error('Đăng ký thất bại', st);
     }
   }
