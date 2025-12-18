@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/widgets/loading_indicator.dart';
 import '../../../core/widgets/error_widget.dart' as custom;
+import '../../../core/widgets/empty_state_widget.dart';
 import '../../../models/user_model.dart';
 import '../logic/user_profile_provider.dart';
 import '../../../core/utils/date_formatter.dart';
@@ -22,15 +24,18 @@ class ProfileScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
-              // Navigate to settings
-              Navigator.pushNamed(context, '/settings');
+              // Navigate to settings using GoRouter
+              context.pushNamed('settings');
             },
           ),
         ],
       ),
       body: userProfile.when(
         data: (user) => user == null 
-            ? const Center(child: Text('Chưa đăng nhập'))
+            ? const EmptyStateWidget(
+                title: 'Chưa đăng nhập',
+                message: 'Vui lòng đăng nhập để xem hồ sơ',
+              )
             : _buildProfile(context, user),
         loading: () => const LoadingIndicator(),
         error: (e, st) => custom.AppErrorWidget(
@@ -369,7 +374,7 @@ class ProfileScreen extends ConsumerWidget {
               ),
               TextButton.icon(
                 onPressed: () {
-                  Navigator.pushNamed(context, '/settings');
+                  context.pushNamed('settings');
                 },
                 icon: const Icon(Icons.edit, size: 18),
                 label: const Text('Chỉnh sửa'),

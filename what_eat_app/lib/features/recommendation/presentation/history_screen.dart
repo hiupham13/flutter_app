@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -170,22 +169,22 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     cloudinaryService,
                     transformations: 'c_fill,g_auto,q_auto,w_240',
                     enableAutoFallback: true, // Bật auto fallback để tự tạo URL từ food.id nếu images list không hợp lệ
-                    enableLogging: kDebugMode, // Bật logging trong debug mode
+                    enableLogging: false, // Tắt logging để tránh spam log
                   );
                   
-                  // Debug log trong debug mode
-                  if (kDebugMode && imageUrl != null) {
-                    AppLogger.info('📜 History Screen - Food Image URL:');
-                    AppLogger.info('   Food ID: ${item.food.id}');
-                    AppLogger.info('   Food Name: ${item.food.name}');
-                    AppLogger.info('   Images list: ${item.food.images}');
-                    AppLogger.info('   Generated URL: $imageUrl');
-                  } else if (kDebugMode && imageUrl == null) {
-                    AppLogger.warning('⚠️ History Screen - No image URL found for:');
-                    AppLogger.warning('   Food ID: ${item.food.id}');
-                    AppLogger.warning('   Food Name: ${item.food.name}');
-                    AppLogger.warning('   Images list: ${item.food.images}');
-                  }
+                  // Debug log trong debug mode - Đã comment để tránh spam log
+                  // if (kDebugMode && imageUrl != null) {
+                  //   AppLogger.info('📜 History Screen - Food Image URL:');
+                  //   AppLogger.info('   Food ID: ${item.food.id}');
+                  //   AppLogger.info('   Food Name: ${item.food.name}');
+                  //   AppLogger.info('   Images list: ${item.food.images}');
+                  //   AppLogger.info('   Generated URL: $imageUrl');
+                  // } else if (kDebugMode && imageUrl == null) {
+                  //   AppLogger.warning('⚠️ History Screen - No image URL found for:');
+                  //   AppLogger.warning('   Food ID: ${item.food.id}');
+                  //   AppLogger.warning('   Food Name: ${item.food.name}');
+                  //   AppLogger.warning('   Images list: ${item.food.images}');
+                  // }
                   
                   return CachedFoodImage(
                     imageUrl: imageUrl ?? '',
