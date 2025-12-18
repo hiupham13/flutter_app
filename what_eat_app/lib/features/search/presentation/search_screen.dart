@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/widgets/loading_indicator.dart';
 import '../../../core/widgets/empty_state_widget.dart';
+import '../../../core/widgets/error_widget.dart' as custom;
 import '../../../core/widgets/food_image_card.dart';
 import '../../../core/widgets/price_badge.dart';
 import '../../../core/services/cloudinary_service.dart';
-import '../../../core/utils/logger.dart';
 import '../../../models/food_model.dart';
 import '../../../models/food_model_extensions.dart';
 
@@ -212,8 +211,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     }
     
     if (searchState.error != null) {
-      return Center(
-        child: Text('Lỗi: ${searchState.error}'),
+      // Standardized error display: AppErrorWidget with retry
+      return custom.AppErrorWidget(
+        title: 'Lỗi tìm kiếm',
+        message: searchState.error!,
+        onRetry: () {
+          // Retry by clearing error and re-performing search
+          ref.read(searchProvider.notifier).updateQuery(searchState.query);
+        },
       );
     }
     
@@ -270,22 +275,22 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           cloudinaryService,
           transformations: 'c_fill,g_auto,q_auto,w_800',
           enableAutoFallback: true, // Bật auto fallback
-          enableLogging: kDebugMode, // Bật logging trong debug mode
+          enableLogging: false, // Tắt logging để tránh spam log
         );
         
-        // Debug log trong debug mode
-        if (kDebugMode && imageUrl != null) {
-          AppLogger.info('🔍 Search Screen - Food Image URL:');
-          AppLogger.info('   Food ID: ${food.id}');
-          AppLogger.info('   Food Name: ${food.name}');
-          AppLogger.info('   Images list: ${food.images}');
-          AppLogger.info('   Generated URL: $imageUrl');
-        } else if (kDebugMode && imageUrl == null) {
-          AppLogger.warning('⚠️ Search Screen - No image URL found for:');
-          AppLogger.warning('   Food ID: ${food.id}');
-          AppLogger.warning('   Food Name: ${food.name}');
-          AppLogger.warning('   Images list: ${food.images}');
-        }
+        // Debug log trong debug mode - Đã comment để tránh spam log
+        // if (kDebugMode && imageUrl != null) {
+        //   AppLogger.info('🔍 Search Screen - Food Image URL:');
+        //   AppLogger.info('   Food ID: ${food.id}');
+        //   AppLogger.info('   Food Name: ${food.name}');
+        //   AppLogger.info('   Images list: ${food.images}');
+        //   AppLogger.info('   Generated URL: $imageUrl');
+        // } else if (kDebugMode && imageUrl == null) {
+        //   AppLogger.warning('⚠️ Search Screen - No image URL found for:');
+        //   AppLogger.warning('   Food ID: ${food.id}');
+        //   AppLogger.warning('   Food Name: ${food.name}');
+        //   AppLogger.warning('   Images list: ${food.images}');
+        // }
         
         return Padding(
           padding: const EdgeInsets.only(bottom: 16),

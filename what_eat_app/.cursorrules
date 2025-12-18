@@ -1,0 +1,608 @@
+# Cursor Rules - "Hôm Nay Ăn Gì?" Project
+
+## Project Context
+This is a Flutter app for smart context-aware food recommendations using Firebase, Riverpod, and Hive. The app follows Feature-First architecture with Repository Pattern and offline-first strategy.
+
+---
+
+## 🏗️ ARCHITECTURE RULES
+
+### 1. Feature-First Structure
+- **Always organize code by features, not by technical layers**
+- Each feature should have: `data/`, `logic/`, `presentation/`
+- Example structure:
+  ```
+  lib/features/recommendation/
+    ├── data/
+    │   ├── repositories/     # Business logic layer
+    │   └── sources/          # Data sources (Firestore, API)
+    ├── logic/                # State management (Providers)
+    └── presentation/         # UI (Screens & Widgets)
+  ```
+
+### 2. Repository Pattern (Mandatory)
+- **All data access goes through repositories**
+- Repositories handle: Firestore, Cache, Offline fallback
+- **Never access Firestore directly from UI or logic layers**
+- Repository methods should follow this pattern:
+  ```dart
+  Future<List<FoodModel>> getAllFoods() async {
+    // 1. Try cache first (if valid)
+    // 2. Fallback to Firestore
+    // 3. Fallback to stale cache (if Firestore fails)
+  }
+  ```
+
+### 3. State Management (Riverpod)
+- Use Riverpod for all state management
+- Providers should be in `logic/` folder
+- Use `ref.watch()` for reactive updates
+- Use `ref.read()` for one-time reads
+- Use `autoDispose` for providers that should be disposed when not used
+
+### 4. Offline-First Strategy
+- Always check cache first, then Firestore
+- Implement graceful fallback to stale cache
+- Never show errors to users when offline data is available
+- Use Hive for persistent cache storage
+
+---
+
+## 📐 SOLID PRINCIPLES (MANDATORY)
+
+### S - Single Responsibility Principle
+**Each class/function should have only one reason to change.**
+
+✅ **DO:**
+```dart
+// Good: Each class has one responsibility
+class FoodRepository {
+  Future<List<FoodModel>> getAllFoods() { ... }
+}
+
+class ScoringEngine {
+  double calculateScore(FoodModel food, Context context) { ... }
+}
+
+class CacheService {
+  Future<void> saveFoods(List<FoodModel> foods) { ... }
+}
+```
+
+❌ **DON'T:**
+```dart
+// Bad: One class doing too many things
+class FoodManager {
+  Future<List<FoodModel>> getAllFoods() { ... }
+  double calculateScore(FoodModel food) { ... }
+  Future<void> saveToCache(List<FoodModel> foods) { ... }
+  void showError(String message) { ... }  // UI logic in data layer!
+}
+```
+
+**Application:**
+- Repositories: Only handle data access
+- Providers: Only handle state management
+- Services: Only handle specific business logic
+- Widgets: Only handle UI rendering
+
+---
+
+### O - Open/Closed Principle
+**Classes should be open for extension but closed for modification.**
+
+✅ **DO:**
+```dart
+// Good: Extend behavior without modifying base class
+abstract class DataSource {
+  Future<List<FoodModel>> fetchFoods();
+}
+
+class FirestoreDataSource extends DataSource {
+  @override
+  Future<List<FoodModel>> fetchFoods() { ... }
+}
+
+class LocalDataSource extends DataSource {
+  @override
+  Future<List<FoodModel>> fetchFoods() { ... }
+}
+```
+
+❌ **DON'T:**
+```dart
+// Bad: Modifying existing class to add new behavior
+class DataSource {
+  Future<List<FoodModel>> fetchFoods({bool fromLocal = false}) {
+    if (fromLocal) {
+      // New code added here - violates OCP
+    }
+  }
+}
+```
+
+**Application:**
+- Use interfaces/abstract classes for data sources
+- Use composition over inheritance
+- Use strategy pattern for algorithms (e.g., different scoring strategies)
+
+---
+
+### L - Liskov Substitution Principle
+**Subtypes must be substitutable for their base types.**
+
+✅ **DO:**
+```dart
+// Good: Subclass can replace base class without breaking functionality
+abstract class AuthProvider {
+  Future<User?> signIn();
+}
+
+class GoogleAuthProvider extends AuthProvider {
+  @override
+  Future<User?> signIn() { ... }  // Returns User or null, never throws unexpected errors
+}
+
+class EmailAuthProvider extends AuthProvider {
+  @override
+  Future<User?> signIn() { ... }  // Same contract as base class
+}
+```
+
+❌ **DON'T:**
+```dart
+// Bad: Subclass changes expected behavior
+class EmailAuthProvider extends AuthProvider {
+  @override
+  Future<User?> signIn() {
+    throw UnimplementedError();  // Breaks LSP - base class doesn't throw this
+  }
+}
+```
+
+**Application:**
+- All implementations of an interface must honor the contract
+- Don't throw exceptions that base class doesn't throw
+- Don't return null if base class doesn't return null
+
+---
+
+### I - Interface Segregation Principle
+**Clients should not be forced to depend on interfaces they don't use.**
+
+✅ **DO:**
+```dart
+// Good: Small, focused interfaces
+abstract class Readable {
+  Future<List<FoodModel>> read();
+}
+
+abstract class Writable {
+  Future<void> write(List<FoodModel> foods);
+}
+
+class FoodRepository implements Readable, Writable {
+  // Only implements what it needs
+}
+```
+
+❌ **DON'T:**
+```dart
+// Bad: Fat interface forcing unused methods
+abstract class DataSource {
+  Future<List<FoodModel>> read();
+  Future<void> write(List<FoodModel> foods);
+  Future<void> delete(String id);
+  Future<void> update(FoodModel food);
+}
+
+class ReadOnlyCache implements DataSource {
+  // Forced to implement write, delete, update even though it's read-only
+  @override
+  Future<void> write(...) => throw UnimplementedError();
+}
+```
+
+**Application:**
+- Create small, focused interfaces
+- Don't force classes to implement methods they don't need
+- Use composition to combine multiple interfaces
+
+---
+
+### D - Dependency Inversion Principle
+**Depend on abstractions, not concretions.**
+
+✅ **DO:**
+```dart
+// Good: Depend on abstraction
+class FoodRepository {
+  final DataSource _dataSource;  // Depends on interface, not concrete class
+  
+  FoodRepository(this._dataSource);
+  
+  Future<List<FoodModel>> getAllFoods() => _dataSource.fetchFoods();
+}
+
+// Can inject FirestoreDataSource or LocalDataSource
+final repo = FoodRepository(FirestoreDataSource());
+```
+
+❌ **DON'T:**
+```dart
+// Bad: Depends on concrete implementation
+class FoodRepository {
+  final FirestoreDataSource _firestore;  // Tightly coupled!
+  
+  FoodRepository() : _firestore = FirestoreDataSource();
+  
+  Future<List<FoodModel>> getAllFoods() => _firestore.fetchFoods();
+}
+```
+
+**Application:**
+- Use dependency injection (Riverpod providers)
+- Depend on interfaces/abstract classes
+- Inject dependencies through constructors
+- Use Riverpod's `Provider.override` for testing
+
+---
+
+## 📝 NAMING CONVENTIONS
+
+### Files
+- Use `snake_case.dart` (e.g., `food_repository.dart`, `auth_provider.dart`)
+- Screen files: `*_screen.dart` (e.g., `dashboard_screen.dart`)
+- Widget files: `*_widget.dart` or descriptive name (e.g., `food_card.dart`)
+
+### Classes
+- Use `PascalCase` (e.g., `FoodRepository`, `AuthProvider`)
+- Abstract classes: Prefix with `Base` or use descriptive name (e.g., `BaseRepository`, `DataSource`)
+
+### Variables & Functions
+- Use `camelCase` (e.g., `foodList`, `getAllFoods()`)
+- Boolean variables: Prefix with `is`, `has`, `should` (e.g., `isLoading`, `hasError`)
+- Private members: Prefix with `_` (e.g., `_foodBox`, `_cacheService`)
+
+### Constants
+- Use `UPPER_SNAKE_CASE` (e.g., `MAX_CACHE_AGE`, `DEFAULT_TIMEOUT`)
+
+---
+
+## 🎨 CODE STYLE
+
+### Flutter Linter
+- Follow `flutter_lints` rules strictly
+- Maximum 100 characters per line
+- Use trailing commas in multi-line lists/maps
+- Prefer `const` constructors when possible
+
+### Dart Style
+```dart
+// ✅ Good
+final foods = [
+  FoodModel(id: '1', name: 'Phở'),
+  FoodModel(id: '2', name: 'Bún bò'),
+];  // Trailing comma
+
+// ❌ Bad
+final foods = [FoodModel(id: '1', name: 'Phở'), FoodModel(id: '2', name: 'Bún bò')];
+```
+
+### Widgets
+- Extract complex widgets into separate files
+- Use `const` widgets when possible
+- Avoid deep nesting (max 3-4 levels)
+
+---
+
+## 🛡️ ERROR HANDLING
+
+### Pattern (Mandatory)
+```dart
+try {
+  final result = await someAsyncOperation();
+  return result;
+} catch (e, st) {
+  AppLogger.error('Operation failed: $e', e, st);
+  FirebaseCrashlytics.instance.recordError(
+    e,
+    st,
+    reason: 'Operation: someAsyncOperation',
+    fatal: false,
+  );
+  rethrow;  // Or return fallback value
+}
+```
+
+### Rules
+- **Always use try-catch for async operations**
+- **Log errors to AppLogger and Firebase Crashlytics**
+- **Show user-friendly error messages**
+- **Never let errors crash the app silently**
+- **Use specific exception types when possible**
+
+---
+
+## 🧪 TESTING GUIDELINES
+
+### Unit Tests
+- Write tests for all business logic
+- Test repositories, providers, and scoring engine
+- Use descriptive test names:
+  ```dart
+  test('should filter foods by budget when budget is provided', () { ... });
+  test('should return empty list when no foods match filters', () { ... });
+  ```
+
+### Test Structure
+```dart
+group('FoodRepository', () {
+  test('getAllFoods - should return cached foods when cache is valid', () { ... });
+  test('getAllFoods - should fetch from Firestore when cache is expired', () { ... });
+  test('getAllFoods - should return stale cache when Firestore fails', () { ... });
+});
+```
+
+### Coverage Goals
+- Business logic: 80%+ coverage
+- Repositories: 70%+ coverage
+- Providers: 60%+ coverage
+
+---
+
+## 🔥 FIREBASE INTEGRATION
+
+### Rules
+- **Always check cache first, then Firestore**
+- **Implement offline-first strategy**
+- **Use batch writes for activity logs** (to reduce costs)
+- **Handle network errors gracefully**
+- **Never block UI on Firestore operations**
+
+### Pattern
+```dart
+Future<List<FoodModel>> getAllFoods() async {
+  // 1. Check cache
+  final cached = await _cacheService.getFoodsFromCache();
+  if (_cacheService.isCacheValid()) {
+    _syncInBackground();  // Fire-and-forget sync
+    return cached;
+  }
+  
+  // 2. Try Firestore
+  try {
+    final foods = await _firestoreService.fetchAllFoods();
+    await _cacheService.saveFoodsToCache(foods);
+    return foods;
+  } catch (e) {
+    // 3. Fallback to stale cache
+    if (cached.isNotEmpty) {
+      AppLogger.warning('Using stale cache due to Firestore error');
+      return cached;
+    }
+    rethrow;
+  }
+}
+```
+
+---
+
+## 🎯 UI/UX GUIDELINES
+
+### Material Design 3
+- Use Material Design 3 components
+- Follow design tokens from `core_style.md`
+- Primary color: Teal 500 `#14B8A6`
+- Accent color: Orange 500 `#FF7A45`
+
+### States
+- **Implement loading states** for all async operations
+- **Show empty states** when data is empty
+- **Show error states** with retry option
+- **Use Hero animations** for food images
+- **Implement pull-to-refresh** where appropriate
+
+### Accessibility
+- Minimum touch target: 44x44px
+- Contrast ratio >= 4.5 for text
+- Use semantic labels for screen readers
+
+---
+
+## ⚡ PERFORMANCE
+
+### Rules
+- **Use `cached_network_image` for all network images**
+- **Implement lazy loading for lists**
+- **Cache frequently accessed data**
+- **Avoid unnecessary rebuilds** (use `const` widgets)
+- **Use `ListView.builder` instead of `ListView` for long lists**
+
+### Optimization
+```dart
+// ✅ Good: Lazy loading
+ListView.builder(
+  itemCount: foods.length,
+  itemBuilder: (context, index) => FoodCard(food: foods[index]),
+)
+
+// ❌ Bad: Loads all items at once
+Column(
+  children: foods.map((food) => FoodCard(food: food)).toList(),
+)
+```
+
+---
+
+## 📦 DEPENDENCIES (Version Lock)
+
+### Critical Versions (DO NOT UPGRADE without team approval)
+- `flutter_riverpod: ^2.6.1` (NOT v3.0.x)
+- `go_router: ^14.8.1` (NOT v17.0.x)
+- `firebase_core: ^3.15.2` (NOT v4.x)
+- `cloud_firestore: ^5.6.12` (NOT v6.x)
+- `firebase_auth: ^5.7.0` (NOT v6.x)
+
+### Safe to Upgrade
+- `cached_network_image: ^3.4.1`
+- `hive: ^2.2.3`
+- `google_fonts: ^6.2.1`
+
+---
+
+## 🔧 ANDROID BUILD RULES
+
+### Java & Kotlin Version
+- **MUST use Java 17** (not 11, not 21)
+- **Kotlin must target JVM 17**
+- Configuration in `build.gradle.kts`:
+  ```kotlin
+  compileOptions {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+  }
+  
+  tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    compilerOptions {
+      jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+  }
+  ```
+
+### Lint Options
+```kotlin
+lint {
+  checkReleaseBuilds = false
+  abortOnError = false
+}
+```
+
+### Minify
+- Keep `isMinifyEnabled = false` for now
+- If enabling minify, add ProGuard rules for Firebase/Google Sign-In
+
+---
+
+## 🚀 WHEN WRITING CODE
+
+### Before Writing
+1. **Check existing similar implementations**
+2. **Follow the established patterns**
+3. **Ask if unsure about architecture decisions**
+
+### Creating New Features
+1. **Create feature folder structure first**
+2. **Implement data layer → logic layer → presentation layer**
+3. **Add error handling from the start**
+4. **Write tests alongside code**
+
+### Modifying Existing Code
+1. **Maintain backward compatibility**
+2. **Update related tests**
+3. **Update documentation if needed**
+4. **Check for breaking changes**
+
+### Fixing Bugs
+1. **Reproduce the issue first**
+2. **Add test case to prevent regression**
+3. **Fix the root cause, not just symptoms**
+4. **Log the fix for future reference**
+
+---
+
+## 📚 COMMON PATTERNS
+
+### Repository Pattern
+```dart
+class FoodRepository {
+  final DataSource _dataSource;
+  final CacheService _cacheService;
+  
+  FoodRepository(this._dataSource, this._cacheService);
+  
+  Future<List<FoodModel>> getAllFoods() async {
+    // Cache-first strategy
+  }
+}
+```
+
+### Provider Pattern
+```dart
+final foodRepositoryProvider = Provider<FoodRepository>((ref) {
+  return FoodRepository(
+    ref.watch(firestoreDataSourceProvider),
+    ref.watch(cacheServiceProvider),
+  );
+});
+
+final foodsProvider = FutureProvider.autoDispose<List<FoodModel>>((ref) {
+  final repository = ref.watch(foodRepositoryProvider);
+  return repository.getAllFoods();
+});
+```
+
+### Service Pattern
+```dart
+class WeatherService {
+  static const String _baseUrl = 'https://api.open-meteo.com';
+  
+  Future<WeatherData> getCurrentWeather(double lat, double lon) async {
+    // Implementation
+  }
+}
+```
+
+---
+
+## ⚠️ IMPORTANT NOTES
+
+### Security
+- **Never commit sensitive data** (API keys, passwords, keystore passwords)
+- **Always use environment variables** for config
+- **Keep `.env` files in `.gitignore`**
+
+### Code Quality
+- **Keep models simple and focused**
+- **Prefer composition over inheritance**
+- **Write self-documenting code** with clear names
+- **Add comments only when code is complex or non-obvious**
+
+### Git
+- **Commit frequently** with clear messages
+- **Use conventional commits** format: `feat:`, `fix:`, `refactor:`, `docs:`
+- **Never commit build artifacts** (`build/`, `.dart_tool/`)
+
+---
+
+## ❓ QUESTIONS TO ASK
+
+When implementing new features, consider:
+1. **Does this follow the feature-first structure?**
+2. **Is error handling in place?**
+3. **Are there tests for this?**
+4. **Does this work offline?**
+5. **Is the UI responsive and accessible?**
+6. **Does this follow SOLID principles?**
+7. **Is this properly abstracted?**
+8. **Can this be easily tested?**
+
+---
+
+## 🎓 SOLID PRINCIPLES SUMMARY
+
+**Remember:**
+- **S**ingle Responsibility: One class, one job
+- **O**pen/Closed: Open for extension, closed for modification
+- **L**iskov Substitution: Subtypes must be substitutable
+- **I**nterface Segregation: Small, focused interfaces
+- **D**ependency Inversion: Depend on abstractions
+
+**When in doubt, ask: "Does this violate any SOLID principle?"**
+
+---
+
+**Last Updated:** 2024-12-15  
+**Version:** 1.0  
+**Applies to:** All AI models in Cursor (Claude, GPT-4, Gemini, etc.)
+

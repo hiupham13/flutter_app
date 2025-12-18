@@ -32,8 +32,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (!mounted) return; // Kiểm tra mounted trước khi dùng ref
+    
     final auth = ref.read(authControllerProvider.notifier);
     await auth.signUp(_emailCtrl.text.trim(), _passwordCtrl.text.trim());
+    
+    // Kiểm tra mounted sau async operation
+    if (!mounted) return;
+    
     final state = ref.read(authControllerProvider);
     state.whenOrNull(
       data: (user) {
@@ -42,9 +48,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         }
       },
       error: (err, _) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(err.toString())),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(err.toString())),
+          );
+        }
       },
     );
   }
@@ -178,8 +186,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           onPressed: isLoading
                               ? null
                               : () async {
+                                  if (!mounted) return; // Kiểm tra mounted trước khi dùng ref
+                                  
                                   final notifier = ref.read(authControllerProvider.notifier);
                                   await notifier.signInWithGoogle();
+                                  
+                                  // Kiểm tra mounted sau async operation
+                                  if (!mounted) return;
+                                  
                                   final state = ref.read(authControllerProvider);
                                   state.whenOrNull(
                                     data: (user) {
@@ -188,9 +202,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                       }
                                     },
                                     error: (err, _) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text(err.toString())),
-                                      );
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text(err.toString())),
+                                        );
+                                      }
                                     },
                                   );
                                 },

@@ -1,7 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 
 import '../../../models/food_model.dart';
-import '../../recommendation/data/repositories/food_repository.dart';
+import '../../../core/utils/logger.dart';
+import '../../recommendation/interfaces/repository_interfaces.dart';
+import '../../recommendation/logic/recommendation_provider.dart';
 
 // Search State
 class SearchState {
@@ -64,14 +67,22 @@ class SearchController extends StateNotifier<SearchState> {
     _init();
   }
 
-  final FoodRepository _foodRepository;
+  final IFoodRepository _foodRepository;
   List<FoodModel> _allFoods = [];
 
   Future<void> _init() async {
     try {
       _allFoods = await _foodRepository.getAllFoods();
-    } catch (e) {
-      state = state.copyWith(error: e.toString());
+    } catch (e, st) {
+      // Standardized error handling: Log + Crashlytics
+      AppLogger.error('Error initializing search: $e', e, st);
+      FirebaseCrashlytics.instance.recordError(
+        e,
+        st,
+        reason: 'Search initialization failed',
+        fatal: false,
+      );
+      state = state.copyWith(error: 'Lỗi khi tải dữ liệu tìm kiếm: $e');
     }
   }
 
@@ -194,10 +205,18 @@ class SearchController extends StateNotifier<SearchState> {
         isLoading: false,
         error: null,
       );
-    } catch (e) {
+    } catch (e, st) {
+      // Standardized error handling: Log + Crashlytics
+      AppLogger.error('Error performing search: $e', e, st);
+      FirebaseCrashlytics.instance.recordError(
+        e,
+        st,
+        reason: 'Search failed',
+        fatal: false,
+      );
       state = state.copyWith(
         isLoading: false,
-        error: e.toString(),
+        error: 'Lỗi khi tìm kiếm: $e',
       );
     }
   }

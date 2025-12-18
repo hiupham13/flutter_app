@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:what_eat_app/config/theme/style_tokens.dart';
@@ -8,6 +7,7 @@ import 'package:what_eat_app/core/widgets/primary_button.dart';
 import 'package:what_eat_app/core/widgets/price_badge.dart';
 import 'package:what_eat_app/core/widgets/cached_food_image.dart';
 import 'package:what_eat_app/core/widgets/food_detail_skeleton.dart';
+import 'package:what_eat_app/core/widgets/error_widget.dart';
 import 'package:what_eat_app/core/services/cloudinary_service.dart';
 import '../../../../models/food_model.dart';
 import '../../../../models/food_model_extensions.dart';
@@ -16,7 +16,6 @@ import '../../../../core/services/copywriting_service.dart';
 import '../../../../core/services/share_service.dart';
 import '../../../../core/services/activity_log_service.dart';
 import '../../../../core/services/analytics_service.dart';
-import '../../../../core/utils/logger.dart';
 import '../logic/recommendation_provider.dart';
 import '../logic/scoring_engine.dart';
 
@@ -98,30 +97,20 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
   }
 
   Widget _buildErrorState(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.error_outline,
-              size: 64,
-              color: AppColors.textSecondary,
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              'Không thể tải món ăn',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            PrimaryButton(
-              label: 'Quay lại',
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ],
-        ),
-      ),
+    // Standardized error display: AppErrorWidget
+    return AppErrorWidget(
+      title: 'Không thể tải món ăn',
+      message: 'Vui lòng thử lại sau',
+      onRetry: () {
+        // Retry by refreshing recommendation
+        final recommendationState = ref.read(recommendationProvider);
+        if (recommendationState.currentFood != null) {
+          setState(() {
+            _currentFood = recommendationState.currentFood;
+            _isLoading = false;
+          });
+        }
+      },
     );
   }
 
@@ -204,22 +193,22 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
       cloudinaryService,
       transformations: 'c_fill,g_auto,q_auto,w_800',
       enableAutoFallback: true, // Bật auto fallback để tự tạo URL từ food.id nếu images list không hợp lệ
-      enableLogging: kDebugMode, // Bật logging trong debug mode để xem URL được tạo như thế nào
+      enableLogging: false, // Tắt logging để tránh spam log
     );
     
-    // Debug log trong debug mode
-    if (kDebugMode && imageUrl != null) {
-      AppLogger.info('🍔 Result Screen - Food Image URL:');
-      AppLogger.info('   Food ID: ${food.id}');
-      AppLogger.info('   Food Name: ${food.name}');
-      AppLogger.info('   Images list: ${food.images}');
-      AppLogger.info('   Generated URL: $imageUrl');
-    } else if (kDebugMode && imageUrl == null) {
-      AppLogger.warning('⚠️ Result Screen - No image URL found for:');
-      AppLogger.warning('   Food ID: ${food.id}');
-      AppLogger.warning('   Food Name: ${food.name}');
-      AppLogger.warning('   Images list: ${food.images}');
-    }
+    // Debug log trong debug mode - Đã comment để tránh spam log
+    // if (kDebugMode && imageUrl != null) {
+    //   AppLogger.info('🍔 Result Screen - Food Image URL:');
+    //   AppLogger.info('   Food ID: ${food.id}');
+    //   AppLogger.info('   Food Name: ${food.name}');
+    //   AppLogger.info('   Images list: ${food.images}');
+    //   AppLogger.info('   Generated URL: $imageUrl');
+    // } else if (kDebugMode && imageUrl == null) {
+    //   AppLogger.warning('⚠️ Result Screen - No image URL found for:');
+    //   AppLogger.warning('   Food ID: ${food.id}');
+    //   AppLogger.warning('   Food Name: ${food.name}');
+    //   AppLogger.warning('   Images list: ${food.images}');
+    // }
 
     return Hero(
       tag: 'food_${food.id}', // ⚡ Unique hero tag for smooth transition

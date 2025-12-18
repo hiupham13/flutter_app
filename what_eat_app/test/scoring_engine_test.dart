@@ -37,7 +37,7 @@ void main() {
     );
   }
 
-  test('Hard filter: allergen should be filtered out', () {
+  test('Hard filter: allergen should be filtered out', () async {
     final foodWithAllergen = buildFood(id: 'peanut_dish', allergenTags: ['peanut']);
     final foodSafe = buildFood(id: 'safe_dish', allergenTags: []);
     
@@ -48,19 +48,19 @@ void main() {
     );
 
     // Test via getTopFoods - food with allergen should be filtered out
-    final results = engine.getTopFoods([foodWithAllergen, foodSafe], ctx, 5);
+    final results = await engine.getTopFoods([foodWithAllergen, foodSafe], ctx, 5);
     expect(results.length, 1);
     expect(results.first.id, 'safe_dish');
   });
 
-  test('Budget filter removes items far above budget', () {
+  test('Budget filter removes items far above budget', () async {
     final expensiveFood = buildFood(id: 'expensive', priceSegment: 4);
     final affordableFood = buildFood(id: 'affordable', priceSegment: 2);
     
     final ctx = RecommendationContext(budget: 1, companion: 'alone');
 
     // Test via getTopFoods - expensive food should be filtered out
-    final results = engine.getTopFoods([expensiveFood, affordableFood], ctx, 5);
+    final results = await engine.getTopFoods([expensiveFood, affordableFood], ctx, 5);
     expect(results.length, 1);
     expect(results.first.id, 'affordable');
   });
