@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/food_model.dart';
+import '../../models/reward_model.dart';
 import '../../features/recommendation/logic/scoring_engine.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
@@ -11,6 +12,8 @@ import '../../features/main/main_screen.dart';
 import '../../features/recommendation/presentation/result_screen.dart';
 import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
+import '../../features/rewards/presentation/box_opening_screen.dart';
+import '../../features/rewards/presentation/transaction_history_screen.dart';
 import '../../features/user/data/user_preferences_repository.dart';
 import '../theme/style_tokens.dart';
 import 'go_router_refresh_stream.dart';
@@ -130,6 +133,36 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => _buildSlidePage(
           state: state,
           child: const SettingsScreen(),
+          offset: const Offset(0.06, 0),
+        ),
+      ),
+      // Rewards routes
+      GoRoute(
+        path: '/box-opening',
+        name: 'box_opening',
+        pageBuilder: (context, state) {
+          final box = state.extra as RewardBox?;
+          
+          if (box == null) {
+            // Navigate back if no box provided
+            return _buildFadePage(
+              state: state,
+              child: const MainScreen(initialIndex: 0),
+            );
+          }
+          
+          return _buildSlideUpPage(
+            state: state,
+            child: BoxOpeningScreen(box: box),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/transactions',
+        name: 'transactions',
+        pageBuilder: (context, state) => _buildSlidePage(
+          state: state,
+          child: const TransactionHistoryScreen(),
           offset: const Offset(0.06, 0),
         ),
       ),
