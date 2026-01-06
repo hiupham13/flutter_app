@@ -11,6 +11,7 @@ import 'package:what_eat_app/core/widgets/food_image_card.dart';
 import 'package:what_eat_app/core/widgets/shimmer_box.dart';
 import 'package:what_eat_app/core/widgets/primary_button.dart';
 import 'package:what_eat_app/core/widgets/price_badge.dart';
+import 'package:what_eat_app/core/widgets/coin_balance_widget.dart';
 import 'package:what_eat_app/models/user_model.dart';
 import '../../../../core/services/context_manager.dart';
 import '../../../../core/services/copywriting_service.dart';
@@ -25,6 +26,7 @@ import '../../recommendation/logic/scoring_engine.dart';
 import '../../recommendation/presentation/widgets/input_bottom_sheet.dart';
 import '../../recommendation/data/repositories/food_repository.dart' as food_repo;
 import '../../user/data/user_preferences_repository.dart';
+import '../../rewards/logic/rewards_provider.dart';
 
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -53,7 +55,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     _loadContext();
     _preloadHistory();
     _warmCache(); // ⚡ NEW: Preload data for instant recommendations
+    _loadRewards(); // 🎁 Load rewards data
     _startSlotAnimation();
+  }
+  
+  /// 🎁 Load rewards data for current user
+  /// Provider tự động load data khi watch, không cần gọi thủ công
+  void _loadRewards() {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId != null) {
+      // Providers tự động load data khi được watch
+      AppLogger.debug('🎁 Rewards providers ready');
+    }
   }
 
   Future<void> _loadContext() async {
@@ -269,6 +282,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         title: const Text('Hôm Nay Ăn Gì?'),
         centerTitle: true,
         actions: [
+          // 🎁 Coin Balance Widget
+          CoinBalanceWidget(),
+          const SizedBox(width: AppSpacing.xs),
           IconButton(
             icon: const Icon(Icons.settings_outlined),
             tooltip: 'Cài đặt',
@@ -298,6 +314,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   ),
 
                   const SizedBox(height: AppSpacing.xxl),
+
+                  // 🎁 Mystery Box Section
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+                    child: _buildMysteryBoxSection(),
+                  ),
+
+                  const SizedBox(height: AppSpacing.xl),
 
                   // Quick Actions
                   Padding(
@@ -725,6 +749,120 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
         ],
       ),
+    );
+  }
+  
+  /// 🎁 Mystery Box Section
+  Widget _buildMysteryBoxSection() {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    
+    // Don't show if not logged in
+    if (userId == null) {
+      return const SizedBox.shrink();
+    }
+    
+    final pendingBoxesAsync = ref.watch(pendingBoxesProvider);
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '🎁 Phần thưởng',
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
+        const SizedBox(height: AppSpacing.md),
+        
+        pendingBoxesAsync.when(
+          data: (boxes) {
+            // No boxes available
+            if (boxes.isEmpty) {
+              return const SizedBox.shrink();
+            }
+            
+            // Show mystery box card
+            return Container(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.orange.shade400,
+                  Colors.deepOrange.shade600,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              boxShadow: const [AppShadows.elevated],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                  child: const Icon(
+                    Icons.card_giftcard,
+                    size: 32,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Bạn có ${boxes.length} hộp quà!',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        'Nhấn để mở quà ngay',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.white.withOpacity(0.9),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ],
+            ),
+          ).paddedTap(
+            onTap: () {
+              // Navigate to box opening screen with first box
+              context.pushNamed(
+                'box_opening',
+                extra: boxes.first,
+              );
+            },
+          );
+          },
+          loading: () => const ShimmerBox(
+            height: 100,
+            borderRadius: BorderRadius.all(Radius.circular(AppRadius.lg)),
+          ),
+          error: (_, __) => const SizedBox.shrink(),
+        ),
+      ],
+    );
+  }
+}
+
+// Helper extension for tap gesture
+extension _PaddedTap on Widget {
+  Widget paddedTap({required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: this,
     );
   }
 }
