@@ -16,6 +16,7 @@ import 'package:what_eat_app/models/user_model.dart';
 import '../../../../core/services/context_manager.dart';
 import '../../../../core/services/copywriting_service.dart';
 import '../../../../core/services/weather_service.dart';
+import '../../../../core/services/weather_provider.dart';
 import '../../../../core/services/activity_log_service.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../../core/services/cloudinary_service.dart';
@@ -76,7 +77,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       final contextManager = ref.read(contextManagerProvider);
       final copywritingService = ref.read(copywritingServiceProvider);
 
-      // Load context summary
+      // Load context summary (uses cached weather from currentWeatherProvider)
+      // If weather is cached, this will be instant; otherwise it will fetch
       final summary = await contextManager.getContextSummary();
       
       // Load greeting message

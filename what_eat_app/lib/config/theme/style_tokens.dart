@@ -46,16 +46,35 @@ class AppShadows {
 }
 
 class AppGradients {
+  // Primary gradient - matches icon (Orange → Yellow → Lime Green)
   static const LinearGradient primary = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [AppColors.primary, AppColors.primaryLight],
+    colors: [
+      AppColors.primary,    // Orange
+      AppColors.accent,     // Yellow
+      AppColors.secondary,  // Lime Green
+    ],
   );
 
+  // Accent gradient - Lime Green to Yellow
   static const LinearGradient accent = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [AppColors.secondary, AppColors.secondaryLight],
+    colors: [
+      AppColors.secondary,  // Lime Green
+      AppColors.accent,     // Yellow
+    ],
+  );
+
+  // Warm gradient - Orange tones
+  static const LinearGradient warm = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      AppColors.primary,
+      AppColors.primaryLight,
+    ],
   );
 }
 

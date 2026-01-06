@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../config/theme/style_tokens.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/services/weather_provider.dart';
 import '../dashboard/presentation/dashboard_screen.dart';
 import '../search/presentation/search_screen.dart';
 import '../favorites/presentation/favorites_screen.dart';
@@ -41,6 +42,20 @@ class _MainScreenState extends ConsumerState<MainScreen> {
     super.initState();
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: _currentIndex);
+    
+    // Preload weather when MainScreen initializes
+    // This triggers the weather provider to load once and cache for 15 minutes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Access ref through the widget's context after first frame
+      // This ensures ProviderScope is available
+      if (mounted) {
+        // Trigger weather load - will be cached for subsequent uses
+        ref.read(currentWeatherProvider.future).catchError((_) {
+          // Silently handle errors - weather will be loaded when needed
+          return null;
+        });
+      }
+    });
   }
 
   @override
