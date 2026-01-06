@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:go_router/go_router.dart';
 import 'package:what_eat_app/config/theme/style_tokens.dart';
 import 'package:what_eat_app/core/constants/app_colors.dart';
 import 'package:what_eat_app/core/widgets/primary_button.dart';
@@ -9,6 +10,7 @@ import 'package:what_eat_app/core/widgets/cached_food_image.dart';
 import 'package:what_eat_app/core/widgets/food_detail_skeleton.dart';
 import 'package:what_eat_app/core/widgets/error_widget.dart';
 import 'package:what_eat_app/core/services/cloudinary_service.dart';
+import 'package:what_eat_app/core/utils/logger.dart';
 import '../../../../models/food_model.dart';
 import '../../../../models/food_model_extensions.dart';
 import '../../../../core/services/deep_link_service.dart';
@@ -18,6 +20,7 @@ import '../../../../core/services/activity_log_service.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../logic/recommendation_provider.dart';
 import '../logic/scoring_engine.dart';
+import '../../rewards/logic/rewards_provider.dart';
 
 /// ⚡ OPTIMIZED: Supports optimistic navigation với loading skeleton
 class ResultScreen extends ConsumerStatefulWidget {
@@ -39,6 +42,8 @@ class ResultScreen extends ConsumerStatefulWidget {
 class _ResultScreenState extends ConsumerState<ResultScreen> {
   FoodModel? _currentFood;
   bool _isLoading = true;
+  bool _hasClaimed = false; // 🎁 Track if reward claimed
+  bool _isClaiming = false; // 🎁 Track claiming state
 
   @override
   void initState() {
@@ -329,6 +334,12 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
               : null,
         ),
         const SizedBox(height: AppSpacing.sm),
+        
+        // 🎁 Claim Reward Button (after picking food)
+        if (!_hasClaimed)
+          _buildClaimRewardButton(context, ref, food),
+        
+        const SizedBox(height: AppSpacing.xs),
         TextButton.icon(
           onPressed: () {
             // TODO: Save to favorites
@@ -376,6 +387,104 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
       case 2:
       default:
         return PriceLevel.medium;
+    }
+  }
+  
+  /// 🎁 Claim Reward Button
+  Widget _buildClaimRewardButton(BuildContext context, WidgetRef ref, FoodModel food) {
+    return PrimaryButton(
+      label: _isClaiming ? 'Đang xử lý...' : 'Nhận thưởng 🎁',
+      leadingIcon: Icons.card_giftcard,
+      variant: PrimaryButtonVariant.tonal,
+      onPressed: _isClaiming ? null : () => _handleClaimReward(context, ref, food),
+      isLoading: _isClaiming,
+    );
+  }
+  
+  /// 🎁 Handle claim reward - generates mystery box for user
+  Future<void> _handleClaimReward(BuildContext context, WidgetRef ref, FoodModel food) async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng đăng nhập để nhận thưởng'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    
+    setState(() => _isClaiming = true);
+    
+    try {
+      // Get rewards controller
+      final controller = ref.read(rewardsControllerProvider);
+      
+      // Generate mystery box as reward for picking food
+      final box = await controller.generateMysteryBox(
+        sourceRecommendationId: food.id,
+      );
+      
+      setState(() {
+        _isClaiming = false;
+        _hasClaimed = true;
+      });
+      
+      if (!mounted) return;
+      
+      if (box != null) {
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('🎉 Bạn nhận được 1 hộp quà bí ẩn!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        
+        AppLogger.info('🎁 Got mystery box! Navigating to opening screen');
+        
+        // Small delay for user to see the success message
+        await Future.delayed(const Duration(milliseconds: 800));
+        
+        if (!mounted) return;
+        
+        // Navigate to box opening screen
+        context.pushNamed(
+          'box_opening',
+          extra: box,
+        );
+      } else {
+        // Show message if no box generated
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã ghi nhận! Tiếp tục khám phá để nhận thêm thưởng 🎁'),
+            backgroundColor: Colors.blue,
+          ),
+        );
+      }
+      
+    } catch (e, st) {
+      AppLogger.error('Failed to claim reward: $e', e, st);
+      
+      setState(() => _isClaiming = false);
+      
+      if (!mounted) return;
+      
+      // User-friendly error messages
+      String errorMessage = 'Không thể nhận thưởng';
+      if (e.toString().contains('Cannot claim box')) {
+        errorMessage = 'Bạn đã nhận đủ thưởng hôm nay. Quay lại vào ngày mai nhé! 😊';
+      }
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 3),
+        ),
+      );
     }
   }
 }

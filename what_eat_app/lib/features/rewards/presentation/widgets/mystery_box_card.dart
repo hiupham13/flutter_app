@@ -174,6 +174,7 @@ class _MysteryBoxCardState extends State<MysteryBoxCard>
       padding: EdgeInsets.all(dimensions.padding),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           // Box emoji/icon
           Text(
@@ -185,19 +186,24 @@ class _MysteryBoxCardState extends State<MysteryBoxCard>
           SizedBox(height: dimensions.spacing),
           
           // Rarity name
-          Text(
-            _getRarityName(rarity),
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: dimensions.titleSize,
-              fontWeight: FontWeight.bold,
-              shadows: [
-                Shadow(
-                  color: Colors.black.withOpacity(0.5),
-                  offset: const Offset(0, 2),
-                  blurRadius: 4,
-                ),
-              ],
+          Flexible(
+            child: Text(
+              _getRarityName(rarity),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: dimensions.titleSize,
+                fontWeight: FontWeight.bold,
+                shadows: [
+                  Shadow(
+                    color: Colors.black.withOpacity(0.5),
+                    offset: const Offset(0, 2),
+                    blurRadius: 4,
+                  ),
+                ],
+              ),
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
           ),
           
@@ -370,14 +376,14 @@ class _MysteryBoxCardState extends State<MysteryBoxCard>
       case MysteryBoxCardSize.small:
         return _CardDimensions(
           width: 100,
-          height: 120,
+          height: 130,
           padding: 8,
           borderRadius: 12,
-          emojiSize: 32,
-          titleSize: 14,
-          subtitleSize: 10,
+          emojiSize: 28,
+          titleSize: 12,
+          subtitleSize: 9,
           iconSize: 40,
-          spacing: 4,
+          spacing: 3,
         );
       case MysteryBoxCardSize.medium:
         return _CardDimensions(

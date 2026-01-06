@@ -13,6 +13,10 @@ class CacheService {
   Box<dynamic>? _metaBox;
   Duration ttl;
   
+  // ⚡ In-memory cache for instant subsequent access
+  // Invalidated when cache is cleared or updated
+  List<FoodModel>? _memoryCache;
+  
   // Singleton pattern
   static final CacheService _instance = CacheService._internal();
   factory CacheService({Duration? ttlOverride}) {
@@ -58,6 +62,9 @@ class CacheService {
       await _metaBox!.put('version', 1);
       await _metaBox!.put('count', foods.length);
       
+      // ⚡ Invalidate in-memory cache (will be rebuilt on next read)
+      _memoryCache = null;
+      
       AppLogger.info('Saved ${foods.length} foods to cache');
     } catch (e, st) {
       AppLogger.error('saveFoodsToCache failed: $e', e, st);
@@ -66,6 +73,9 @@ class CacheService {
   
   /// Retrieve foods from cache
   /// Returns empty list if cache is invalid or expired
+  ///
+  /// ⚡ OPTIMIZATION: Uses in-memory cache after first load
+  /// to prevent blocking main thread on subsequent calls
   Future<List<FoodModel>> getFoodsFromCache() async {
     if (_foodBox == null) {
       AppLogger.warning('CacheService not initialized');
@@ -78,8 +88,24 @@ class CacheService {
     }
     
     try {
+      // ⚡ Use in-memory cache if available (instant)
+      if (_memoryCache != null) {
+        AppLogger.debug('Using in-memory cache (${_memoryCache!.length} items)');
+        return _memoryCache!;
+      }
+      
+      final stopwatch = Stopwatch()..start();
+      
+      // First time: Load from Hive (this may take 670ms)
+      // But only happens once per app session
       final foods = _foodBox!.values.toList();
-      AppLogger.info('Retrieved ${foods.length} foods from cache');
+      
+      // Store in memory for instant subsequent access
+      _memoryCache = foods;
+      
+      stopwatch.stop();
+      AppLogger.info('Retrieved ${foods.length} foods from cache in ${stopwatch.elapsedMilliseconds}ms');
+      
       return foods;
     } catch (e, st) {
       AppLogger.error('getFoodsFromCache failed: $e', e, st);
@@ -116,6 +142,10 @@ class CacheService {
     try {
       await _foodBox!.clear();
       await _metaBox!.clear();
+      
+      // ⚡ Invalidate in-memory cache
+      _memoryCache = null;
+      
       AppLogger.info('Cache cleared successfully');
     } catch (e, st) {
       AppLogger.error('clearCache failed: $e', e, st);
