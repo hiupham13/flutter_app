@@ -21,6 +21,7 @@ import '../../../../core/services/analytics_service.dart';
 import '../logic/recommendation_provider.dart';
 import '../logic/scoring_engine.dart';
 import '../../rewards/logic/rewards_provider.dart';
+import '../../favorites/logic/favorites_provider.dart';
 
 /// ⚡ OPTIMIZED: Supports optimistic navigation với loading skeleton
 class ResultScreen extends ConsumerStatefulWidget {
@@ -340,13 +341,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
           _buildClaimRewardButton(context, ref, food),
         
         const SizedBox(height: AppSpacing.xs),
-        TextButton.icon(
-          onPressed: () {
-            // TODO: Save to favorites
-          },
-          icon: const Icon(Icons.favorite_border),
-          label: const Text('Lưu vào yêu thích'),
-        ),
+        _buildFavoriteButton(context, ref, food),
       ],
     );
   }
@@ -377,6 +372,76 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     );
   }
 
+  /// Handle toggle favorite - add if not favorited, remove if favorited
+  Future<void> _handleToggleFavorite(BuildContext context, WidgetRef ref) async {
+    if (_currentFood == null) return;
+    
+    final controller = ref.read(favoritesControllerProvider);
+    
+    try {
+      // Get current favorite status
+      final favoriteIds = await ref.read(favoriteFoodIdsProvider.future);
+      final isFavorited = favoriteIds.contains(_currentFood!.id);
+      
+      if (isFavorited) {
+        await controller.removeFavorite(_currentFood!.id);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Đã xóa khỏi yêu thích'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        }
+      } else {
+        await controller.addFavorite(_currentFood!.id);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Đã thêm vào yêu thích'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      AppLogger.error('Error toggling favorite: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: ${e.toString()}'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Build favorite button with dynamic icon and text based on favorite status
+  Widget _buildFavoriteButton(BuildContext context, WidgetRef ref, FoodModel food) {
+    // Watch favorite IDs to check if current food is favorited
+    final favoriteIds = ref.watch(favoriteFoodIdsProvider);
+    
+    final isFavorited = favoriteIds.when(
+      data: (ids) => ids.contains(food.id),
+      loading: () => false,
+      error: (_, __) => false,
+    );
+
+    return TextButton.icon(
+      onPressed: () => _handleToggleFavorite(context, ref),
+      icon: Icon(
+        isFavorited ? Icons.favorite : Icons.favorite_border,
+        color: isFavorited ? AppColors.error : null,
+      ),
+      label: Text(
+        isFavorited ? 'Đã yêu thích' : 'Lưu vào yêu thích',
+        style: TextStyle(
+          color: isFavorited ? AppColors.error : null,
+        ),
+      ),
+    );
+  }
 
   PriceLevel _mapPrice(int segment) {
     switch (segment) {

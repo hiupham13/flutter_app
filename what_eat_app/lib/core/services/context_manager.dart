@@ -1,22 +1,26 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/weather_service.dart';
+import '../services/weather_provider.dart';
 import '../services/location_service.dart';
 import '../services/time_manager.dart';
 import '../../features/recommendation/logic/scoring_engine.dart';
 
 /// Service tổng hợp tất cả context (weather, location, time) thành RecommendationContext
 class ContextManager {
-  final WeatherService _weatherService;
+  final WeatherService? _weatherService;
   final LocationService _locationService;
   final TimeManager _timeManager;
+  final Ref? _ref;
 
   ContextManager({
     WeatherService? weatherService,
     LocationService? locationService,
     TimeManager? timeManager,
-  })  : _weatherService = weatherService ?? WeatherService(),
+    Ref? ref,
+  })  : _weatherService = weatherService,
         _locationService = locationService ?? LocationService(),
-        _timeManager = timeManager ?? TimeManager();
+        _timeManager = timeManager ?? TimeManager(),
+        _ref = ref;
 
   /// Tổng hợp context hiện tại (weather, time, location)
   /// và trả về RecommendationContext với user input
@@ -35,9 +39,24 @@ class ContextManager {
     // Lấy location
     final position = await _locationService.getCurrentLocation();
 
-    // Lấy weather nếu có location
+    // Lấy weather - ưu tiên dùng global cached Provider nếu có ref
     WeatherData? weather;
-    if (position != null) {
+    if (_ref != null) {
+      // Sử dụng global cached weather provider (loads once, caches 15 min)
+      try {
+        final weatherAsync = await _ref.read(currentWeatherProvider.future);
+        weather = weatherAsync;
+      } catch (e) {
+        // Nếu provider chưa có data hoặc lỗi, fallback về service
+        if (position != null && _weatherService != null) {
+          weather = await _weatherService.getWeatherByCoordinates(
+            position.latitude,
+            position.longitude,
+          );
+        }
+      }
+    } else if (position != null && _weatherService != null) {
+      // Fallback về service cũ nếu không có ref
       weather = await _weatherService.getWeatherByCoordinates(
         position.latitude,
         position.longitude,
@@ -63,11 +82,28 @@ class ContextManager {
   }
 
   /// Lấy context summary để hiển thị trên UI
+  /// Sử dụng global cached weather provider để tránh fetch lại mỗi lần
   Future<ContextSummary> getContextSummary() async {
     final position = await _locationService.getCurrentLocation();
     WeatherData? weather;
     
-    if (position != null) {
+    // Sử dụng global cached weather provider (loads once, caches 15 min)
+    if (_ref != null) {
+      try {
+        // Sử dụng cached weather từ global provider
+        final weatherAsync = await _ref.read(currentWeatherProvider.future);
+        weather = weatherAsync;
+      } catch (e) {
+        // Nếu provider chưa có data hoặc lỗi, fallback về service
+        if (position != null && _weatherService != null) {
+          weather = await _weatherService.getWeatherByCoordinates(
+            position.latitude,
+            position.longitude,
+          );
+        }
+      }
+    } else if (position != null && _weatherService != null) {
+      // Fallback về service cũ nếu không có ref
       weather = await _weatherService.getWeatherByCoordinates(
         position.latitude,
         position.longitude,
@@ -108,9 +144,10 @@ final timeManagerProvider = Provider<TimeManager>((ref) => TimeManager());
 
 final contextManagerProvider = Provider<ContextManager>((ref) {
   return ContextManager(
-    weatherService: WeatherService(),
+    // Không cần truyền WeatherService nữa, sẽ dùng Provider
     locationService: LocationService(),
     timeManager: ref.watch(timeManagerProvider),
+    ref: ref, // Truyền ref để dùng Provider
   );
 });
 
