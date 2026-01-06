@@ -12,6 +12,37 @@ class HistoryRepository implements IHistoryRepository {
   HistoryRepository({FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseFirestore.instance;
 
+  // ============================================================================
+  // CACHE for fetchHistoryFoodIdsWithDays (prevent repeated Firestore calls)
+  // ============================================================================
+  List<String>? _cachedHistoryIds;
+  DateTime? _cacheTimestamp;
+  String? _cachedUserId;
+  int? _cachedDays;
+  static const _cacheDuration = Duration(seconds: 30);
+
+  bool _isCacheValid(String userId, int days) {
+    if (_cachedHistoryIds == null || _cacheTimestamp == null) return false;
+    if (_cachedUserId != userId || _cachedDays != days) return false;
+    
+    final now = DateTime.now();
+    return now.difference(_cacheTimestamp!) < _cacheDuration;
+  }
+
+  void _updateCache(String userId, int days, List<String> ids) {
+    _cachedHistoryIds = ids;
+    _cacheTimestamp = DateTime.now();
+    _cachedUserId = userId;
+    _cachedDays = days;
+  }
+
+  void _clearCache() {
+    _cachedHistoryIds = null;
+    _cacheTimestamp = null;
+    _cachedUserId = null;
+    _cachedDays = null;
+  }
+
   @override
   Future<void> addHistory({
     required String userId,
@@ -19,6 +50,9 @@ class HistoryRepository implements IHistoryRepository {
     required RecommendationContext context,
   }) async {
     try {
+      // Clear cache when adding new history
+      _clearCache();
+      
       await _firestore
           .collection('users')
           .doc(userId)
@@ -110,6 +144,9 @@ class HistoryRepository implements IHistoryRepository {
     required String historyId,
   }) async {
     try {
+      // Clear cache when deleting
+      _clearCache();
+      
       await _firestore
           .collection('users')
           .doc(userId)
@@ -127,6 +164,9 @@ class HistoryRepository implements IHistoryRepository {
   /// Clear all history for a user
   Future<void> clearAllHistory({required String userId}) async {
     try {
+      // Clear cache when clearing history
+      _clearCache();
+      
       final snapshot = await _firestore
           .collection('users')
           .doc(userId)
@@ -175,12 +215,20 @@ class HistoryRepository implements IHistoryRepository {
   }
   
   /// Fetch history food IDs with days filter (overloaded method)
+  /// ✅ Now with 30-second cache to prevent repeated Firestore calls
   @override
   Future<List<String>> fetchHistoryFoodIdsWithDays({
     required String userId,
     int days = 7,
   }) async {
     try {
+      // Check cache first
+      if (_isCacheValid(userId, days)) {
+        AppLogger.debug('✅ [History] Using cached history IDs (${_cachedHistoryIds!.length} items)');
+        return _cachedHistoryIds!;
+      }
+
+      AppLogger.debug('🔄 [History] Fetching from Firestore (cache miss)');
       final cutoffDate = DateTime.now().subtract(Duration(days: days));
       
       final snapshot = await _firestore
@@ -191,10 +239,16 @@ class HistoryRepository implements IHistoryRepository {
           .orderBy('timestamp', descending: true)
           .get();
 
-      return snapshot.docs
+      final ids = snapshot.docs
           .map((doc) => doc.data()['food_id'] as String? ?? '')
           .where((id) => id.isNotEmpty)
           .toList();
+
+      // Update cache
+      _updateCache(userId, days, ids);
+      AppLogger.debug('✅ [History] Cached ${ids.length} history IDs');
+
+      return ids;
     } catch (e) {
       AppLogger.error('Failed to fetch history: $e');
       return [];
