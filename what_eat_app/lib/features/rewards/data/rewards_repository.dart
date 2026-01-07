@@ -459,6 +459,426 @@ class RewardsRepository {
   }
 
   // ============================================================================
+  // REDEMPTION MANAGEMENT
+  // ============================================================================
+
+  /// Get available redemption offers
+  Future<List<RedemptionOffer>> getRedemptionOffers({
+    RedemptionType? type,
+    int? maxCoins,
+  }) async {
+    try {
+      Query query = _firestore.collection('redemption_offers');
+
+      // Filter by type if specified
+      if (type != null) {
+        query = query.where('type', isEqualTo: type.name);
+      }
+
+      // Filter by active status
+      query = query.where('is_active', isEqualTo: true);
+
+      final snapshot = await query.get();
+      final offers = snapshot.docs
+          .map((doc) => RedemptionOffer.fromFirestore(doc))
+          .where((offer) => offer.isAvailable)
+          .toList();
+
+      // Filter by max coins if specified
+      if (maxCoins != null) {
+        offers.removeWhere((offer) => offer.coinsRequired > maxCoins);
+      }
+
+      // Sort by coins required (ascending)
+      offers.sort((a, b) => a.coinsRequired.compareTo(b.coinsRequired));
+
+      return offers;
+    } catch (e, st) {
+      AppLogger.error('Get redemption offers failed: $e', e, st);
+      return [];
+    }
+  }
+
+  /// Redeem an offer
+  Future<UserRedemption> redeemOffer(String offerId) async {
+    try {
+      // Get offer details
+      final offerDoc =
+          await _firestore.collection('redemption_offers').doc(offerId).get();
+
+      if (!offerDoc.exists) {
+        throw Exception('Offer not found');
+      }
+
+      final offer = RedemptionOffer.fromFirestore(offerDoc);
+
+      // Validate offer availability
+      if (!offer.isAvailable) {
+        throw Exception('Offer is not available');
+      }
+
+      // Check user balance
+      final stats = await getUserStats();
+      if (stats.totalCoins < offer.coinsRequired) {
+        throw Exception('Insufficient coins');
+      }
+
+      // Check redemption limits
+      await _validateRedemptionLimits(offer.type);
+
+      // Check account requirements for cash
+      if (offer.type == RedemptionType.cash) {
+        await _validateCashWithdrawalRequirements();
+      }
+
+      // Create redemption record
+      final redemptionRef = _firestore
+          .collection('users')
+          .doc(userId)
+          .collection(RewardsConstants.redemptionsCollection)
+          .doc();
+
+      final now = DateTime.now();
+      final redemption = UserRedemption(
+        id: redemptionRef.id,
+        userId: userId,
+        offerId: offerId,
+        offerTitle: offer.title,
+        type: offer.type,
+        coinsSpent: offer.coinsRequired,
+        cashValue: offer.cashValue,
+        status: RedemptionStatus.pending,
+        redeemedAt: now,
+        expiryDate: offer.type == RedemptionType.voucher
+            ? now.add(Duration(days: RewardsConstants.voucherValidityDays))
+            : null,
+        voucherCode: offer.type == RedemptionType.voucher
+            ? _generateVoucherCode()
+            : null,
+        qrCodeData: offer.type == RedemptionType.voucher
+            ? _generateQRCodeData(redemptionRef.id)
+            : null,
+      );
+
+      // Save redemption
+      await redemptionRef.set(redemption.toFirestore());
+
+      // Spend coins
+      await _spendCoins(
+        amount: offer.coinsRequired,
+        description: 'Redeemed: ${offer.title}',
+        relatedRedemptionId: redemptionRef.id,
+      );
+
+      // Update offer stock if limited
+      if (offer.stockRemaining != null) {
+        await _firestore.collection('redemption_offers').doc(offerId).update({
+          'stock_remaining': FieldValue.increment(-1),
+          'updated_at': Timestamp.now(),
+        });
+      }
+
+      // Auto-complete for vouchers (instant), pending for cash
+      if (offer.type == RedemptionType.voucher) {
+        await _completeRedemption(redemptionRef.id);
+        return redemption.copyWith(status: RedemptionStatus.completed);
+      }
+
+      AppLogger.info('Redemption created: ${offer.title}, ${offer.coinsRequired} coins');
+
+      return redemption;
+    } catch (e, st) {
+      AppLogger.error('Redeem offer failed: $e', e, st);
+      rethrow;
+    }
+  }
+
+  /// Get user redemption history
+  Future<List<UserRedemption>> getRedemptionHistory({
+    int limit = 50,
+    RedemptionType? type,
+    RedemptionStatus? status,
+  }) async {
+    try {
+      Query query = _firestore
+          .collection('users')
+          .doc(userId)
+          .collection(RewardsConstants.redemptionsCollection);
+
+      // Filter by type if specified
+      if (type != null) {
+        query = query.where('type', isEqualTo: type.name);
+      }
+
+      // Filter by status if specified
+      if (status != null) {
+        query = query.where('status', isEqualTo: status.name);
+      }
+
+      query = query.orderBy('redeemed_at', descending: true).limit(limit);
+
+      final snapshot = await query.get();
+      return snapshot.docs
+          .map((doc) => UserRedemption.fromFirestore(doc))
+          .toList();
+    } catch (e, st) {
+      AppLogger.error('Get redemption history failed: $e', e, st);
+      return [];
+    }
+  }
+
+  /// Get active vouchers (completed, not expired, not used)
+  Future<List<UserRedemption>> getActiveVouchers() async {
+    try {
+      final now = DateTime.now();
+      final snapshot = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection(RewardsConstants.redemptionsCollection)
+          .where('type', isEqualTo: RedemptionType.voucher.name)
+          .where('status', isEqualTo: RedemptionStatus.completed.name)
+          .orderBy('redeemed_at', descending: true)
+          .get();
+
+      // Filter out expired vouchers
+      return snapshot.docs
+          .map((doc) => UserRedemption.fromFirestore(doc))
+          .where((v) => v.expiryDate != null && v.expiryDate!.isAfter(now))
+          .toList();
+    } catch (e, st) {
+      AppLogger.error('Get active vouchers failed: $e', e, st);
+      return [];
+    }
+  }
+
+  /// Use a voucher (mark as used)
+  Future<void> useVoucher(String redemptionId) async {
+    try {
+      final redemptionRef = _firestore
+          .collection('users')
+          .doc(userId)
+          .collection(RewardsConstants.redemptionsCollection)
+          .doc(redemptionId);
+
+      final doc = await redemptionRef.get();
+      if (!doc.exists) {
+        throw Exception('Redemption not found');
+      }
+
+      final redemption = UserRedemption.fromFirestore(doc);
+
+      // Validate
+      if (redemption.type != RedemptionType.voucher) {
+        throw Exception('Not a voucher redemption');
+      }
+
+      if (redemption.status != RedemptionStatus.completed) {
+        throw Exception('Voucher is not ready to use');
+      }
+
+      if (redemption.isExpired) {
+        throw Exception('Voucher has expired');
+      }
+
+      // Mark as used
+      await redemptionRef.update({
+        'status': RedemptionStatus.used.name,
+        'completed_at': Timestamp.now(),
+      });
+
+      AppLogger.info('Voucher used: $redemptionId');
+    } catch (e, st) {
+      AppLogger.error('Use voucher failed: $e', e, st);
+      rethrow;
+    }
+  }
+
+  /// Cancel a redemption (refund coins)
+  Future<void> cancelRedemption(String redemptionId) async {
+    try {
+      final redemptionRef = _firestore
+          .collection('users')
+          .doc(userId)
+          .collection(RewardsConstants.redemptionsCollection)
+          .doc(redemptionId);
+
+      final doc = await redemptionRef.get();
+      if (!doc.exists) {
+        throw Exception('Redemption not found');
+      }
+
+      final redemption = UserRedemption.fromFirestore(doc);
+
+      // Validate - can only cancel pending or processing
+      if (redemption.status.isFinal) {
+        throw Exception('Cannot cancel completed/used/failed redemption');
+      }
+
+      // Mark as cancelled
+      await redemptionRef.update({
+        'status': RedemptionStatus.cancelled.name,
+        'completed_at': Timestamp.now(),
+        'failure_reason': 'Cancelled by user',
+      });
+
+      // Refund coins
+      await _addCoins(
+        amount: redemption.coinsSpent,
+        type: TransactionType.redemptionRefund,
+        description: 'Refund: ${redemption.offerTitle}',
+        relatedRedemptionId: redemptionId,
+      );
+
+      // Restore stock if it was limited
+      final offerDoc = await _firestore
+          .collection('redemption_offers')
+          .doc(redemption.offerId)
+          .get();
+
+      if (offerDoc.exists) {
+        final offer = RedemptionOffer.fromFirestore(offerDoc);
+        if (offer.stockRemaining != null) {
+          await offerDoc.reference.update({
+            'stock_remaining': FieldValue.increment(1),
+          });
+        }
+      }
+
+      AppLogger.info('Redemption cancelled: $redemptionId');
+    } catch (e, st) {
+      AppLogger.error('Cancel redemption failed: $e', e, st);
+      rethrow;
+    }
+  }
+
+  // ============================================================================
+  // REDEMPTION VALIDATION & HELPERS
+  // ============================================================================
+
+  /// Validate redemption limits
+  Future<void> _validateRedemptionLimits(RedemptionType type) async {
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day);
+    final weekStart = todayStart.subtract(Duration(days: now.weekday - 1));
+    final monthStart = DateTime(now.year, now.month, 1);
+
+    // Get redemptions for period
+    final snapshot = await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection(RewardsConstants.redemptionsCollection)
+        .where('redeemed_at', isGreaterThanOrEqualTo: Timestamp.fromDate(todayStart))
+        .get();
+
+    final todayRedemptions = snapshot.docs
+        .map((doc) => UserRedemption.fromFirestore(doc))
+        .toList();
+
+    // Check daily limits
+    if (type == RedemptionType.voucher) {
+      final todayVouchers =
+          todayRedemptions.where((r) => r.type == RedemptionType.voucher).length;
+      if (todayVouchers >= RewardsConstants.maxVouchersPerDay) {
+        throw Exception('Daily voucher limit reached');
+      }
+    }
+
+    if (type == RedemptionType.cash) {
+      final todayCash = todayRedemptions
+          .where((r) => r.type == RedemptionType.cash)
+          .fold<int>(0, (sum, r) => sum + r.cashValue);
+      if (todayCash >= RewardsConstants.maxCashPerDay) {
+        throw Exception('Daily cash limit reached');
+      }
+    }
+
+    // Check weekly limits (simplified - checking last 7 days)
+    final weekSnapshot = await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection(RewardsConstants.redemptionsCollection)
+        .where('redeemed_at', isGreaterThanOrEqualTo: Timestamp.fromDate(weekStart))
+        .get();
+
+    final weekRedemptions = weekSnapshot.docs
+        .map((doc) => UserRedemption.fromFirestore(doc))
+        .toList();
+
+    if (type == RedemptionType.voucher) {
+      final weekVouchers =
+          weekRedemptions.where((r) => r.type == RedemptionType.voucher).length;
+      if (weekVouchers >= RewardsConstants.maxVouchersPerWeek) {
+        throw Exception('Weekly voucher limit reached');
+      }
+    }
+
+    if (type == RedemptionType.cash) {
+      final weekCash = weekRedemptions
+          .where((r) => r.type == RedemptionType.cash)
+          .fold<int>(0, (sum, r) => sum + r.cashValue);
+      if (weekCash >= RewardsConstants.maxCashPerWeek) {
+        throw Exception('Weekly cash limit reached');
+      }
+    }
+  }
+
+  /// Validate cash withdrawal requirements
+  Future<void> _validateCashWithdrawalRequirements() async {
+    // Check account age
+    final userDoc = await _firestore.collection('users').doc(userId).get();
+    if (userDoc.exists) {
+      final createdAt = (userDoc.data()?['created_at'] as Timestamp?)?.toDate();
+      if (createdAt != null) {
+        final accountAge = DateTime.now().difference(createdAt).inDays;
+        if (accountAge < RewardsConstants.minAccountAgeDaysForCash) {
+          throw Exception('Account too new for cash withdrawal');
+        }
+      }
+    }
+
+    // Check boxes opened
+    final stats = await getUserStats();
+    if (stats.totalBoxesOpened < RewardsConstants.minBoxesOpenedForCash) {
+      throw Exception('Need to open more boxes for cash withdrawal');
+    }
+  }
+
+  /// Complete a redemption (for testing/admin)
+  Future<void> _completeRedemption(String redemptionId) async {
+    try {
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection(RewardsConstants.redemptionsCollection)
+          .doc(redemptionId)
+          .update({
+        'status': RedemptionStatus.completed.name,
+        'completed_at': Timestamp.now(),
+      });
+    } catch (e, st) {
+      AppLogger.error('Complete redemption failed: $e', e, st);
+    }
+  }
+
+  /// Generate voucher code
+  String _generateVoucherCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    final random = Random();
+    final code = List.generate(
+      8,
+      (index) => chars[random.nextInt(chars.length)],
+    ).join();
+    return 'VCH-$code';
+  }
+
+  /// Generate QR code data
+  String _generateQRCodeData(String redemptionId) {
+    // Format: REDEMPTION:userId:redemptionId:timestamp
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    return 'REDEMPTION:$userId:$redemptionId:$timestamp';
+  }
+
+  // ============================================================================
   // HELPER METHODS
   // ============================================================================
 

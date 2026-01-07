@@ -14,6 +14,9 @@ import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/rewards/presentation/box_opening_screen.dart';
 import '../../features/rewards/presentation/transaction_history_screen.dart';
+import '../../features/rewards/presentation/redemption_offers_screen.dart';
+import '../../features/rewards/presentation/my_vouchers_screen.dart';
+import '../../features/restaurants/presentation/restaurant_list_screen.dart';
 import '../../features/user/data/user_preferences_repository.dart';
 import '../theme/style_tokens.dart';
 import 'go_router_refresh_stream.dart';
@@ -163,6 +166,35 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => _buildSlidePage(
           state: state,
           child: const TransactionHistoryScreen(),
+          offset: const Offset(0.06, 0),
+        ),
+      ),
+      // Redemption routes
+      GoRoute(
+        path: '/redemption-offers',
+        name: 'redemption_offers',
+        pageBuilder: (context, state) => _buildSlidePage(
+          state: state,
+          child: const RedemptionOffersScreen(),
+          offset: const Offset(0.06, 0),
+        ),
+      ),
+      GoRoute(
+        path: '/my-vouchers',
+        name: 'my_vouchers',
+        pageBuilder: (context, state) => _buildSlidePage(
+          state: state,
+          child: const MyVouchersScreen(),
+          offset: const Offset(0.06, 0),
+        ),
+      ),
+      // Restaurant routes
+      GoRoute(
+        path: '/restaurants',
+        name: 'restaurants',
+        pageBuilder: (context, state) => _buildSlidePage(
+          state: state,
+          child: const RestaurantListScreen(),
           offset: const Offset(0.06, 0),
         ),
       ),

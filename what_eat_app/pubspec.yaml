@@ -46,6 +46,7 @@ dependencies:
   go_router: ^14.2.7
   share_plus: ^10.1.0
   video_player: ^2.8.2
+  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_test:
@@ -80,6 +81,7 @@ flutter:
     - assets/data/foods_batch_2.json
     - assets/data/app_configs_copywriting.json
     - assets/data/users_seed.json
+    - assets/data/restaurants.json
     - assets/videos/1214.mp4
 
   # An image asset can refer to one or more resolution-specific "variants", see
