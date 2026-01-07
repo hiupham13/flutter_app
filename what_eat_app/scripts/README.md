@@ -1,3 +1,14 @@
+# Scripts Directory
+
+Các script Node.js hỗ trợ import và upload dữ liệu cho ứng dụng What Eat.
+
+## Scripts
+
+1. **upload-to-cloudinary.js** - Upload ảnh lên Cloudinary
+2. **import-to-firestore.js** - Import dữ liệu món ăn vào Firestore
+
+---
+
 # Cloudinary Batch Upload Script
 
 Script Node.js để upload nhiều file ảnh lên Cloudinary cùng lúc với Public ID được chỉ định tự động.
@@ -302,4 +313,263 @@ Script sẽ hiển thị:
 ==================================================
 ✨ Hoàn thành!
 ```
+
+---
+
+# Firestore Import Script
+
+Script Node.js để import dữ liệu món ăn từ JSON file vào Firestore collection `foods`.
+
+## Cấu Hình Firebase
+
+### Cách 1: Sử Dụng Service Account JSON File (Khuyến Nghị) ⭐
+
+**Bước 1: Tải Service Account Key từ Firebase Console**
+
+1. Đăng nhập [Firebase Console](https://console.firebase.google.com/)
+2. Chọn project của bạn
+3. Click vào **⚙️ Settings** (bánh răng) ở góc trên bên trái
+4. Chọn **Project settings**
+5. Vào tab **Service accounts**
+6. Click nút **Generate new private key**
+7. Xác nhận trong popup (cảnh báo về bảo mật)
+8. File JSON sẽ được tải xuống tự động (tên file thường là `your-project-name-firebase-adminsdk-xxxxx-xxxxxxxxxx.json`)
+
+**Bước 2: Di chuyển file JSON vào folder `scripts`**
+
+- Copy file JSON vừa tải về vào folder `scripts/`
+- Đổi tên cho dễ nhớ (ví dụ: `serviceAccountKey.json`)
+
+**Bước 3: Tạo file `.env` trong folder `scripts`**
+
+Tạo file `.env` với nội dung:
+
+```env
+FIREBASE_SERVICE_ACCOUNT=./serviceAccountKey.json
+```
+
+⚠️ **Lưu ý**: Thay `serviceAccountKey.json` bằng tên file thực tế của bạn.
+
+### Cách 2: Sử Dụng Environment Variables
+
+Nếu bạn muốn dùng environment variables thay vì file JSON, bạn cần lấy các giá trị từ Service Account JSON file:
+
+**Bước 1: Mở Service Account JSON file** (đã tải ở Cách 1)
+
+File JSON có dạng:
+```json
+{
+  "type": "service_account",
+  "project_id": "your-project-id",
+  "private_key_id": "...",
+  "private_key": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com",
+  ...
+}
+```
+
+**Bước 2: Lấy các giá trị cần thiết**
+
+- `FIREBASE_PROJECT_ID` = giá trị của `project_id` trong JSON
+- `FIREBASE_CLIENT_EMAIL` = giá trị của `client_email` trong JSON
+- `FIREBASE_PRIVATE_KEY` = giá trị của `private_key` trong JSON (giữ nguyên cả `\n`)
+
+**Bước 3: Tạo file `.env` trong folder `scripts`**
+
+```env
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...\n-----END PRIVATE KEY-----\n"
+```
+
+⚠️ **Lưu ý quan trọng**: 
+- File `.env` đã được thêm vào `.gitignore`, không lo bị commit lên Git
+- Với `FIREBASE_PRIVATE_KEY`, cần:
+  - Giữ nguyên format với `\n` (sẽ được convert thành newline tự động)
+  - Đặt trong dấu ngoặc kép `"..."` 
+  - Copy toàn bộ private key từ JSON (từ `-----BEGIN PRIVATE KEY-----` đến `-----END PRIVATE KEY-----\n`)
+
+**Ví dụ đầy đủ:**
+
+Nếu trong JSON file bạn có:
+```json
+{
+  "project_id": "what-eat-app-12345",
+  "client_email": "firebase-adminsdk-abcde@what-eat-app-12345.iam.gserviceaccount.com",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...\n-----END PRIVATE KEY-----\n"
+}
+```
+
+Thì trong `.env` bạn viết:
+```env
+FIREBASE_PROJECT_ID=what-eat-app-12345
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-abcde@what-eat-app-12345.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...\n-----END PRIVATE KEY-----\n"
+```
+
+### Khuyến Nghị
+
+**Nên dùng Cách 1** (Service Account JSON file) vì:
+- ✅ Dễ setup hơn (chỉ cần 1 dòng trong `.env`)
+- ✅ Ít lỗi hơn (không cần copy/paste private key)
+- ✅ An toàn hơn (file JSON có thể được bảo vệ tốt hơn)
+
+## Sử Dụng
+
+### Cú Pháp Cơ Bản
+
+```bash
+node import-to-firestore.js [options]
+```
+
+### Ví Dụ
+
+#### Import với file mặc định (`foods (1).json`):
+
+```bash
+node import-to-firestore.js
+```
+
+#### Import với file tùy chỉnh:
+
+```bash
+node import-to-firestore.js --file custom-foods.json
+```
+
+#### Dry run (preview, không upload thật):
+
+```bash
+node import-to-firestore.js --dry-run
+```
+
+#### Xem hướng dẫn:
+
+```bash
+node import-to-firestore.js --help
+```
+
+## Format JSON File
+
+File JSON phải là array của các food objects:
+
+```json
+[
+  {
+    "id": "chao-yen-mach-ca-hoi",
+    "name": "Cháo Yến Mạch Cá Hồi",
+    "description": "Cháo mềm, giàu omega-3 tốt cho tim mạch",
+    "images": ["https://placeholder.com/chaoyenmach.jpg"],
+    "price_segment": 2,
+    "cuisine_id": "vn",
+    "meal_type_id": "soup",
+    "flavor_profile": ["light"],
+    "available_times": ["morning"],
+    "is_active": true,
+    "context_scores": { "elderly": 2.0, "hypertension": 2.0 },
+    "map_query": "Cháo yến mạch cá hồi",
+    "search_keywords": ["cháo yến mạch"]  // optional
+  }
+]
+```
+
+### Required Fields:
+- `id` - Document ID (unique)
+- `name` - Tên món ăn
+- `cuisine_id` - ID của cuisine
+- `meal_type_id` - ID của meal type
+- `price_segment` - 1-4 (1: Cheap, 2: Mid, 3: High, 4: Premium)
+
+### Optional Fields:
+- `search_keywords` - Array of strings (default: [])
+- `description` - Mô tả (default: '')
+- `images` - Array of image URLs (default: [])
+- `allergen_tags` - Array of allergen tags (default: [])
+- `avg_calories` - Số calories (default: null)
+- `context_scores` - Object với context scores (default: {})
+
+## Cách Hoạt Động
+
+1. **Đọc và validate** JSON file
+2. **Map fields** từ JSON sang Firestore format
+3. **Check document existence** - tự động skip nếu đã tồn tại
+4. **Upload** documents mới vào collection `foods`
+5. **Hiển thị summary** (success, skipped, failed)
+
+## Output
+
+Script sẽ hiển thị:
+- Số lượng món ăn được đọc
+- Tiến trình upload (với progress bar)
+- Kết quả chi tiết:
+  - ✅ Thành công: Documents đã upload
+  - ⏭️ Đã bỏ qua: Documents đã tồn tại (auto-skip)
+  - ❌ Thất bại: Documents có lỗi
+
+### Ví Dụ Output:
+
+```
+🚀 Bắt đầu import dữ liệu vào Firestore...
+
+✅ Firebase initialized from service account file
+✅ Đọc thành công 2078 món ăn từ file: foods (1).json
+📊 Tổng số món ăn: 2078
+📂 Collection: foods
+🔄 Mode: LIVE (will upload)
+
+⏳ Đang validate và map dữ liệu...
+
+✅ 2078 món ăn hợp lệ
+
+⏳ Đang upload...
+
+[1/2078] chao-yen-mach-ca-hoi... ✅
+[2/2078] canh-rau-den-tom... ✅
+[3/2078] ca-hap-sa... ⏭️  (skipped)
+...
+
+============================================================
+📊 Kết quả:
+
+✅ Thành công: 2050
+⏭️  Đã bỏ qua (đã tồn tại): 28
+❌ Thất bại: 0
+
+✅ Documents đã upload thành công:
+  - chao-yen-mach-ca-hoi
+  - canh-rau-den-tom
+  ... và 2048 documents khác
+
+⏭️  Documents đã bỏ qua (đã tồn tại):
+  - ca-hap-sa
+  ... và 27 documents khác
+
+============================================================
+
+✨ Hoàn thành!
+```
+
+## Troubleshooting
+
+### Lỗi: "Firebase credentials not found"
+
+→ Kiểm tra đã set environment variables trong `.env` hoặc service account file chưa
+
+### Lỗi: "File không tồn tại"
+
+→ Kiểm tra đường dẫn file JSON có đúng không
+
+### Lỗi: "Missing required fields"
+
+→ Kiểm tra JSON file có đầy đủ các required fields (id, name, cuisine_id, meal_type_id, price_segment)
+
+### Lỗi: "Invalid price_segment"
+
+→ `price_segment` phải là số từ 1-4
+
+## Notes
+
+- Script tự động **skip documents đã tồn tại** (check by document ID)
+- Sử dụng **batch writes** để tối ưu performance
+- **Validation** được thực hiện trước khi upload
+- **Error handling** cho từng document - nếu một document fail, các document khác vẫn tiếp tục
 
