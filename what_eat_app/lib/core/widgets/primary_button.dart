@@ -122,24 +122,37 @@ class _PrimaryButtonState extends State<PrimaryButton> {
             ],
           );
 
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        minWidth: widget.expand ? double.infinity : (widget.width ?? 0),
-      ),
-      child: GestureDetector(
-        onTapDown: (_) => setState(() => _pressed = true),
-        onTapUp: (_) => setState(() => _pressed = false),
-        onTapCancel: () => setState(() => _pressed = false),
-        child: AnimatedScale(
-          duration: AppDurations.fast,
-          scale: _pressed && !widget.isLoading ? 0.98 : 1.0,
-          child: ElevatedButton(
-            onPressed: widget.isLoading ? null : widget.onPressed,
-            style: _style(context),
-            child: content,
-          ),
+    final button = GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedScale(
+        duration: AppDurations.fast,
+        scale: _pressed && !widget.isLoading ? 0.98 : 1.0,
+        child: ElevatedButton(
+          onPressed: widget.isLoading ? null : widget.onPressed,
+          style: _style(context),
+          child: content,
         ),
       ),
+    );
+
+    // Fix: Use SizedBox.expand for full width to avoid infinite constraints
+    if (widget.expand) {
+      return SizedBox(
+        width: double.infinity,
+        height: _height(),
+        child: button,
+      );
+    }
+
+    // For non-expanding buttons, use ConstrainedBox
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        minWidth: widget.width ?? 0,
+        minHeight: _height(),
+      ),
+      child: button,
     );
   }
 }

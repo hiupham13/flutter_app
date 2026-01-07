@@ -9,6 +9,8 @@ class EmptyStateWidget extends StatelessWidget {
   final String? actionLabel;
   final VoidCallback? onAction;
   final Widget? illustration;
+  final IconData? icon;
+  final String? subtitle;
 
   const EmptyStateWidget({
     super.key,
@@ -17,6 +19,8 @@ class EmptyStateWidget extends StatelessWidget {
     this.actionLabel,
     this.onAction,
     this.illustration,
+    this.icon,
+    this.subtitle,
   });
 
   @override
@@ -42,8 +46,8 @@ class EmptyStateWidget extends StatelessWidget {
                   color: Color(0xFFE6F8F4),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.inbox_rounded,
+                child: Icon(
+                  icon ?? Icons.inbox_rounded,
                   color: AppColors.primary,
                   size: 28,
                 ),
@@ -54,6 +58,16 @@ class EmptyStateWidget extends StatelessWidget {
             style: Theme.of(context).textTheme.titleMedium,
             textAlign: TextAlign.center,
           ),
+          if (subtitle != null) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              subtitle!,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+          ],
           if (message != null) ...[
             const SizedBox(height: AppSpacing.sm),
             Text(

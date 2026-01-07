@@ -2,9 +2,12 @@ import 'package:dio/dio.dart';
 import '../utils/logger.dart';
 
 class WeatherService {
-  final Dio _dio = Dio();
+  final Dio _dio;
   // Open-Meteo API - Miễn phí, không cần API key
   static const String _baseUrl = 'https://api.open-meteo.com/v1';
+
+  /// Constructor với dependency injection cho Dio (testable)
+  WeatherService({Dio? dio}) : _dio = dio ?? Dio();
 
   /// Lấy thông tin thời tiết theo tọa độ
   Future<WeatherData?> getWeatherByCoordinates(
@@ -20,6 +23,10 @@ class WeatherService {
           'current_weather': true,
           'timezone': 'auto',
         },
+        options: Options(
+          receiveTimeout: const Duration(seconds: 10),
+          sendTimeout: const Duration(seconds: 10),
+        ),
       );
 
       if (response.statusCode == 200) {
@@ -36,8 +43,13 @@ class WeatherService {
           weatherCode: weatherCode,
         );
       }
-    } catch (e) {
-      AppLogger.error('Error fetching weather: $e');
+    } on DioException catch (e) {
+      AppLogger.error('Dio error fetching weather: ${e.message}');
+      if (e.response != null) {
+        AppLogger.error('Response data: ${e.response?.data}');
+      }
+    } catch (e, st) {
+      AppLogger.error('Error fetching weather: $e', e, st);
     }
     return null;
   }

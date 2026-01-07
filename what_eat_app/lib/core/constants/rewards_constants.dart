@@ -96,6 +96,68 @@ class RewardsConstants {
   static const int coinsPerVND = 20; // 1000 coins = 50,000 VND
 
   // ============================================================================
+  // REDEMPTION LIMITS
+  // ============================================================================
+
+  /// Maximum voucher redemptions per day
+  static const int maxVouchersPerDay = 3;
+
+  /// Maximum cash redemptions per day (VND)
+  static const int maxCashPerDay = 100000;
+
+  /// Maximum voucher redemptions per week
+  static const int maxVouchersPerWeek = 10;
+
+  /// Maximum cash redemptions per week (VND)
+  static const int maxCashPerWeek = 500000;
+
+  /// Maximum total redemptions per month
+  static const int maxTotalRedemptionsPerMonth = 50;
+
+  /// Minimum account age for cash withdrawal (days)
+  static const int minAccountAgeDaysForCash = 7;
+
+  /// Minimum boxes opened for cash withdrawal
+  static const int minBoxesOpenedForCash = 10;
+
+  /// Voucher validity period (days)
+  static const int voucherValidityDays = 30;
+
+  /// Cash withdrawal processing time (days) - fake
+  static const int cashProcessingDays = 3;
+
+  // ============================================================================
+  // REDEMPTION OFFERS - Default Values
+  // ============================================================================
+
+  /// Voucher 10K coins required
+  static const int voucher10kCoins = 500;
+
+  /// Voucher 20K coins required
+  static const int voucher20kCoins = 900;
+
+  /// Voucher 50K coins required
+  static const int voucher50kCoins = 2000;
+
+  /// Cash 20K coins required
+  static const int cash20kCoins = 1000;
+
+  /// Cash 50K coins required
+  static const int cash50kCoins = 2500;
+
+  /// Cash 100K coins required
+  static const int cash100kCoins = 5000;
+
+  /// Cash 200K coins required
+  static const int cash200kCoins = 10000;
+
+  /// Monthly VIP Pass coins required
+  static const int monthlyPassCoins = 15000;
+
+  /// Premium reward minimum coins
+  static const int premiumRewardMinCoins = 10000;
+
+  // ============================================================================
   // UI ANIMATIONS
   // ============================================================================
 
