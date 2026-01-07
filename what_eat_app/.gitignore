@@ -168,3 +168,10 @@ ehthumbs.db
 !**/scripts/package-lock.json
 !**/scripts/README.md
 !**/scripts/.gitignore
+# Node.js / Scripts (QUAN TRỌNG - Không commit credentials)
+**/scripts/node_modules/
+**/scripts/.env
+**/scripts/.env.*
+**/scripts/serviceAccountKey.json
+**/scripts/*serviceAccount*.json
+**/scripts/*.log
