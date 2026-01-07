@@ -320,3 +320,287 @@ final boxOpeningProvider =
     StateNotifierProvider<BoxOpeningNotifier, BoxOpeningState>((ref) {
   return BoxOpeningNotifier(ref);
 });
+
+// ============================================================================
+// REDEMPTION OFFERS PROVIDERS
+// ============================================================================
+
+/// Future provider for all redemption offers
+final redemptionOffersProvider =
+    FutureProvider<List<RedemptionOffer>>((ref) async {
+  final repository = ref.watch(rewardsRepositoryProvider);
+
+  if (repository == null) {
+    return [];
+  }
+
+  return repository.getRedemptionOffers();
+});
+
+/// Family provider for offers filtered by type
+final redemptionOffersByTypeProvider = FutureProvider.family<
+    List<RedemptionOffer>, RedemptionType?>((ref, type) async {
+  final repository = ref.watch(rewardsRepositoryProvider);
+
+  if (repository == null) {
+    return [];
+  }
+
+  return repository.getRedemptionOffers(type: type);
+});
+
+/// Provider for offers user can afford
+final affordableOffersProvider =
+    FutureProvider<List<RedemptionOffer>>((ref) async {
+  final repository = ref.watch(rewardsRepositoryProvider);
+  final coinBalance = ref.watch(coinBalanceProvider);
+
+  if (repository == null) {
+    return [];
+  }
+
+  return repository.getRedemptionOffers(maxCoins: coinBalance);
+});
+
+/// Provider for voucher offers only
+final voucherOffersProvider = Provider<AsyncValue<List<RedemptionOffer>>>((ref) {
+  return ref.watch(redemptionOffersByTypeProvider(RedemptionType.voucher));
+});
+
+/// Provider for cash offers only
+final cashOffersProvider = Provider<AsyncValue<List<RedemptionOffer>>>((ref) {
+  return ref.watch(redemptionOffersByTypeProvider(RedemptionType.cash));
+});
+
+/// Provider for premium offers only
+final premiumOffersProvider = Provider<AsyncValue<List<RedemptionOffer>>>((ref) {
+  return ref.watch(redemptionOffersByTypeProvider(RedemptionType.premium));
+});
+
+// ============================================================================
+// USER REDEMPTIONS PROVIDERS
+// ============================================================================
+
+/// Future provider for user's redemption history
+final userRedemptionsProvider =
+    FutureProvider<List<UserRedemption>>((ref) async {
+  final repository = ref.watch(rewardsRepositoryProvider);
+
+  if (repository == null) {
+    return [];
+  }
+
+  return repository.getRedemptionHistory();
+});
+
+/// Family provider for redemptions filtered by type
+final redemptionsByTypeProvider = FutureProvider.family<List<UserRedemption>,
+    RedemptionType?>((ref, type) async {
+  final repository = ref.watch(rewardsRepositoryProvider);
+
+  if (repository == null) {
+    return [];
+  }
+
+  return repository.getRedemptionHistory(type: type);
+});
+
+/// Family provider for redemptions filtered by status
+final redemptionsByStatusProvider = FutureProvider.family<
+    List<UserRedemption>, RedemptionStatus?>((ref, status) async {
+  final repository = ref.watch(rewardsRepositoryProvider);
+
+  if (repository == null) {
+    return [];
+  }
+
+  return repository.getRedemptionHistory(status: status);
+});
+
+/// Provider for active vouchers (usable)
+final activeVouchersProvider =
+    FutureProvider<List<UserRedemption>>((ref) async {
+  final repository = ref.watch(rewardsRepositoryProvider);
+
+  if (repository == null) {
+    return [];
+  }
+
+  return repository.getActiveVouchers();
+});
+
+/// Provider for active vouchers count
+final activeVouchersCountProvider = Provider<int>((ref) {
+  final vouchers = ref.watch(activeVouchersProvider);
+
+  return vouchers.when(
+    data: (data) => data.length,
+    loading: () => 0,
+    error: (_, __) => 0,
+  );
+});
+
+// ============================================================================
+// REDEMPTION CONTROLLER
+// ============================================================================
+
+/// Controller for redemption operations
+final redemptionControllerProvider = Provider<RedemptionController>((ref) {
+  return RedemptionController(ref);
+});
+
+/// Redemption controller class
+class RedemptionController {
+  final Ref _ref;
+
+  RedemptionController(this._ref);
+
+  /// Get repository
+  RewardsRepository? get _repository =>
+      _ref.read(rewardsRepositoryProvider);
+
+  /// Redeem an offer
+  Future<UserRedemption> redeemOffer(String offerId) async {
+    final repository = _repository;
+    if (repository == null) {
+      throw Exception('User not authenticated');
+    }
+
+    // Redeem the offer
+    final redemption = await repository.redeemOffer(offerId);
+
+    // Invalidate providers to refresh
+    _ref.invalidate(userRedemptionsProvider);
+    _ref.invalidate(activeVouchersProvider);
+    _ref.invalidate(transactionHistoryProvider);
+    _ref.invalidate(redemptionOffersProvider);
+    // Stats will auto-update via stream
+
+    return redemption;
+  }
+
+  /// Cancel a redemption
+  Future<void> cancelRedemption(String redemptionId) async {
+    final repository = _repository;
+    if (repository == null) {
+      throw Exception('User not authenticated');
+    }
+
+    await repository.cancelRedemption(redemptionId);
+
+    // Invalidate providers to refresh
+    _ref.invalidate(userRedemptionsProvider);
+    _ref.invalidate(activeVouchersProvider);
+    _ref.invalidate(transactionHistoryProvider);
+    _ref.invalidate(redemptionOffersProvider);
+    // Stats will auto-update via stream
+  }
+
+  /// Use a voucher
+  Future<void> useVoucher(String redemptionId) async {
+    final repository = _repository;
+    if (repository == null) {
+      throw Exception('User not authenticated');
+    }
+
+    await repository.useVoucher(redemptionId);
+
+    // Invalidate providers to refresh
+    _ref.invalidate(userRedemptionsProvider);
+    _ref.invalidate(activeVouchersProvider);
+  }
+
+  /// Refresh all redemption data
+  void refreshAll() {
+    _ref.invalidate(redemptionOffersProvider);
+    _ref.invalidate(userRedemptionsProvider);
+    _ref.invalidate(activeVouchersProvider);
+  }
+}
+
+// ============================================================================
+// STATE NOTIFIER FOR REDEMPTION FLOW
+// ============================================================================
+
+/// State for redemption flow
+class RedemptionState {
+  final bool isRedeeming;
+  final UserRedemption? currentRedemption;
+  final String? error;
+
+  const RedemptionState({
+    this.isRedeeming = false,
+    this.currentRedemption,
+    this.error,
+  });
+
+  RedemptionState copyWith({
+    bool? isRedeeming,
+    UserRedemption? currentRedemption,
+    String? error,
+  }) {
+    return RedemptionState(
+      isRedeeming: isRedeeming ?? this.isRedeeming,
+      currentRedemption: currentRedemption ?? this.currentRedemption,
+      error: error ?? this.error,
+    );
+  }
+}
+
+/// State notifier for redemption flow
+class RedemptionNotifier extends StateNotifier<RedemptionState> {
+  final Ref _ref;
+
+  RedemptionNotifier(this._ref) : super(const RedemptionState());
+
+  /// Get repository
+  RewardsRepository? get _repository =>
+      _ref.read(rewardsRepositoryProvider);
+
+  /// Start redemption process
+  Future<void> redeemOffer(String offerId) async {
+    if (state.isRedeeming) return;
+
+    state = state.copyWith(
+      isRedeeming: true,
+      error: null,
+    );
+
+    try {
+      final repository = _repository;
+      if (repository == null) {
+        throw Exception('Not authenticated');
+      }
+
+      // Redeem the offer
+      final redemption = await repository.redeemOffer(offerId);
+
+      state = state.copyWith(
+        isRedeeming: false,
+        currentRedemption: redemption,
+      );
+
+      // Invalidate providers
+      _ref.invalidate(userRedemptionsProvider);
+      _ref.invalidate(activeVouchersProvider);
+      _ref.invalidate(transactionHistoryProvider);
+      _ref.invalidate(redemptionOffersProvider);
+    } catch (e) {
+      state = state.copyWith(
+        isRedeeming: false,
+        error: e.toString(),
+      );
+    }
+  }
+
+  /// Reset state
+  void reset() {
+    state = const RedemptionState();
+  }
+}
+
+/// Provider for redemption state notifier
+final redemptionProvider =
+    StateNotifierProvider<RedemptionNotifier, RedemptionState>((ref) {
+  return RedemptionNotifier(ref);
+});
