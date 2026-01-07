@@ -327,6 +327,15 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
         ),
         const SizedBox(height: AppSpacing.md),
         PrimaryButton(
+          label: 'Xem nhà hàng gần đây',
+          leadingIcon: Icons.restaurant,
+          variant: PrimaryButtonVariant.tonal,
+          onPressed: () {
+            context.pushNamed('restaurants');
+          },
+        ),
+        const SizedBox(height: AppSpacing.md),
+        PrimaryButton(
           label: 'Gợi ý khác',
           leadingIcon: Icons.casino,
           variant: PrimaryButtonVariant.tonal,

@@ -468,33 +468,49 @@ class _BoxOpeningScreenState extends ConsumerState<BoxOpeningScreen>
             
             const SizedBox(height: 32),
             
-            // Buttons
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Share button
-                OutlinedButton.icon(
-                  onPressed: _shareResult,
-                  icon: const Icon(Icons.share),
-                  label: const Text('Chia Sẻ'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white),
+            // Buttons - Fix: Wrap Row in SizedBox to constrain width
+            SizedBox(
+              width: MediaQuery.of(context).size.width * 0.8,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Share button - Flexible to fit in Row
+                  Flexible(
+                    child: OutlinedButton.icon(
+                      onPressed: _shareResult,
+                      icon: const Icon(Icons.share),
+                      label: const Text('Chia Sẻ'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Colors.white),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                
-                const SizedBox(width: 16),
-                
-                // Continue button
-                ElevatedButton.icon(
-                  onPressed: () => context.pop(),
-                  icon: const Icon(Icons.check),
-                  label: const Text('Tiếp Tục'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: widget.box.rarity.color,
+                  
+                  const SizedBox(width: 16),
+                  
+                  // Continue button - Flexible to fit in Row
+                  Flexible(
+                    child: ElevatedButton.icon(
+                      onPressed: () => context.pop(),
+                      icon: const Icon(Icons.check),
+                      label: const Text('Tiếp Tục'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: widget.box.rarity.color,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),

@@ -68,6 +68,11 @@ class ProfileScreen extends ConsumerWidget {
           // Preferences section
           _buildPreferencesSection(context, user),
           
+          const SizedBox(height: 24),
+          
+          // Rewards section
+          _buildRewardsSection(context),
+          
           const SizedBox(height: 32),
         ],
       ),
@@ -482,5 +487,75 @@ class ProfileScreen extends ConsumerWidget {
   
   int _calculateActiveDays(DateTime createdAt) {
     return DateTime.now().difference(createdAt).inDays;
+  }
+  
+  Widget _buildRewardsSection(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Phần Thưởng',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+              ),
+            ),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.card_giftcard,
+                      color: Colors.amber,
+                    ),
+                  ),
+                  title: const Text('Đổi Coin'),
+                  subtitle: const Text('Xem offers và đổi coin'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    context.pushNamed('redemption_offers');
+                  },
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.confirmation_number,
+                      color: Colors.blue,
+                    ),
+                  ),
+                  title: const Text('Voucher của tôi'),
+                  subtitle: const Text('Quản lý vouchers đã đổi'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    context.pushNamed('my_vouchers');
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

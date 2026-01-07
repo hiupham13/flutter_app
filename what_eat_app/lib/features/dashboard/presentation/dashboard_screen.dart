@@ -323,6 +323,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     child: _buildMysteryBoxSection(),
                   ),
 
+                  const SizedBox(height: AppSpacing.md),
+
+                  // 🎁 Redemption Section
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+                    child: _buildRedemptionSection(),
+                  ),
+
                   const SizedBox(height: AppSpacing.xl),
 
                   // Quick Actions
@@ -854,6 +862,80 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           error: (_, __) => const SizedBox.shrink(),
         ),
       ],
+    );
+  }
+
+  /// 🎁 Build redemption section with "Đổi Coin" button
+  Widget _buildRedemptionSection() {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    
+    // Don't show if not logged in
+    if (userId == null) {
+      return const SizedBox.shrink();
+    }
+    
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.primary.withOpacity(0.1),
+            AppColors.primary.withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(
+          color: AppColors.primary.withOpacity(0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: const Icon(
+              Icons.monetization_on,
+              color: AppColors.primary,
+              size: 32,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Đổi Coin',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Đổi coin để nhận voucher và phần thưởng',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          IconButton(
+            onPressed: () {
+              context.pushNamed('redemption_offers');
+            },
+            icon: const Icon(Icons.arrow_forward_ios, size: 20),
+            style: IconButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

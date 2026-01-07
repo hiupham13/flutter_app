@@ -155,9 +155,11 @@ class RewardBox {
 /// Transaction type enum
 enum TransactionType {
   earned, // Earned from opening box
-  spent, // Spent on redemption
+  spent, // Spent on redemption (legacy - use redemption instead)
   bonus, // Daily bonus, streak bonus, etc.
   refund, // Refund from cancelled redemption
+  redemption, // Spent on coin redemption (voucher/cash/premium)
+  redemptionRefund, // Refund from failed/cancelled redemption
 }
 
 /// Coin transaction model
@@ -221,6 +223,10 @@ class CoinTransaction {
         return description ?? 'Bonus reward';
       case TransactionType.refund:
         return description ?? 'Refund';
+      case TransactionType.redemption:
+        return description ?? 'Redeemed reward';
+      case TransactionType.redemptionRefund:
+        return description ?? 'Redemption refund';
     }
   }
 
@@ -228,7 +234,8 @@ class CoinTransaction {
   bool get isCredit =>
       type == TransactionType.earned ||
       type == TransactionType.bonus ||
-      type == TransactionType.refund;
+      type == TransactionType.refund ||
+      type == TransactionType.redemptionRefund;
 }
 
 /// User rewards stats model
@@ -333,6 +340,380 @@ class UserRewardsStats {
       silverBoxesOpened: silverBoxesOpened ?? this.silverBoxesOpened,
       goldBoxesOpened: goldBoxesOpened ?? this.goldBoxesOpened,
       diamondBoxesOpened: diamondBoxesOpened ?? this.diamondBoxesOpened,
+    );
+  }
+}
+
+// ============================================================================
+// REDEMPTION MODELS
+// ============================================================================
+
+/// Redemption type enum
+enum RedemptionType {
+  voucher, // Voucher nhà hàng
+  cash, // Rút tiền
+  premium, // Premium rewards
+  merchandise, // Quà tặng
+}
+
+/// Extension for RedemptionType
+extension RedemptionTypeExtension on RedemptionType {
+  String get displayName {
+    switch (this) {
+      case RedemptionType.voucher:
+        return 'Voucher';
+      case RedemptionType.cash:
+        return 'Rút tiền';
+      case RedemptionType.premium:
+        return 'Premium';
+      case RedemptionType.merchandise:
+        return 'Quà tặng';
+    }
+  }
+
+  String get emoji {
+    switch (this) {
+      case RedemptionType.voucher:
+        return '🎟️';
+      case RedemptionType.cash:
+        return '💵';
+      case RedemptionType.premium:
+        return '👑';
+      case RedemptionType.merchandise:
+        return '🎁';
+    }
+  }
+
+  Color get color {
+    switch (this) {
+      case RedemptionType.voucher:
+        return const Color(0xFF4CAF50); // Green
+      case RedemptionType.cash:
+        return const Color(0xFF2196F3); // Blue
+      case RedemptionType.premium:
+        return const Color(0xFFFFD700); // Gold
+      case RedemptionType.merchandise:
+        return const Color(0xFFFF9800); // Orange
+    }
+  }
+}
+
+/// Redemption status enum
+enum RedemptionStatus {
+  pending, // Chờ xử lý
+  processing, // Đang xử lý
+  completed, // Hoàn thành
+  failed, // Thất bại
+  cancelled, // Đã hủy
+  used, // Đã sử dụng (for vouchers)
+}
+
+/// Extension for RedemptionStatus
+extension RedemptionStatusExtension on RedemptionStatus {
+  String get displayName {
+    switch (this) {
+      case RedemptionStatus.pending:
+        return 'Chờ xử lý';
+      case RedemptionStatus.processing:
+        return 'Đang xử lý';
+      case RedemptionStatus.completed:
+        return 'Hoàn thành';
+      case RedemptionStatus.failed:
+        return 'Thất bại';
+      case RedemptionStatus.cancelled:
+        return 'Đã hủy';
+      case RedemptionStatus.used:
+        return 'Đã sử dụng';
+    }
+  }
+
+  Color get color {
+    switch (this) {
+      case RedemptionStatus.pending:
+        return const Color(0xFFFFA726); // Orange
+      case RedemptionStatus.processing:
+        return const Color(0xFF42A5F5); // Blue
+      case RedemptionStatus.completed:
+        return const Color(0xFF66BB6A); // Green
+      case RedemptionStatus.failed:
+        return const Color(0xFFEF5350); // Red
+      case RedemptionStatus.cancelled:
+        return const Color(0xFF9E9E9E); // Gray
+      case RedemptionStatus.used:
+        return const Color(0xFF78909C); // Blue Gray
+    }
+  }
+
+  /// Check if status is final (cannot be changed)
+  bool get isFinal =>
+      this == RedemptionStatus.completed ||
+      this == RedemptionStatus.failed ||
+      this == RedemptionStatus.cancelled ||
+      this == RedemptionStatus.used;
+}
+
+/// Redemption offer model (global offers available to all users)
+class RedemptionOffer {
+  final String id;
+  final String title;
+  final String description;
+  final RedemptionType type;
+  final int coinsRequired;
+  final int cashValue; // VND value
+  final String? imageUrl;
+  final bool isActive;
+  final DateTime? expiryDate;
+  final int? stockRemaining; // Null = unlimited
+  final List<String> terms; // Điều kiện sử dụng
+  final Map<String, dynamic>? metadata; // Partner info, etc.
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  const RedemptionOffer({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.type,
+    required this.coinsRequired,
+    required this.cashValue,
+    this.imageUrl,
+    this.isActive = true,
+    this.expiryDate,
+    this.stockRemaining,
+    this.terms = const [],
+    this.metadata,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  /// Create from Firestore document
+  factory RedemptionOffer.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return RedemptionOffer(
+      id: doc.id,
+      title: data['title'] as String? ?? '',
+      description: data['description'] as String? ?? '',
+      type: RedemptionType.values.firstWhere(
+        (e) => e.name == data['type'],
+        orElse: () => RedemptionType.voucher,
+      ),
+      coinsRequired: data['coins_required'] as int? ?? 0,
+      cashValue: data['cash_value'] as int? ?? 0,
+      imageUrl: data['image_url'] as String?,
+      isActive: data['is_active'] as bool? ?? true,
+      expiryDate: (data['expiry_date'] as Timestamp?)?.toDate(),
+      stockRemaining: data['stock_remaining'] as int?,
+      terms: (data['terms'] as List<dynamic>?)?.cast<String>() ?? [],
+      metadata: data['metadata'] as Map<String, dynamic>?,
+      createdAt: (data['created_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      updatedAt: (data['updated_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
+    );
+  }
+
+  /// Convert to Firestore document
+  Map<String, dynamic> toFirestore() {
+    return {
+      'title': title,
+      'description': description,
+      'type': type.name,
+      'coins_required': coinsRequired,
+      'cash_value': cashValue,
+      'image_url': imageUrl,
+      'is_active': isActive,
+      'expiry_date': expiryDate != null ? Timestamp.fromDate(expiryDate!) : null,
+      'stock_remaining': stockRemaining,
+      'terms': terms,
+      'metadata': metadata,
+      'created_at': Timestamp.fromDate(createdAt),
+      'updated_at': Timestamp.fromDate(updatedAt),
+    };
+  }
+
+  /// Check if offer is available
+  bool get isAvailable {
+    if (!isActive) return false;
+    if (expiryDate != null && DateTime.now().isAfter(expiryDate!)) return false;
+    if (stockRemaining != null && stockRemaining! <= 0) return false;
+    return true;
+  }
+
+  /// Copy with method
+  RedemptionOffer copyWith({
+    String? id,
+    String? title,
+    String? description,
+    RedemptionType? type,
+    int? coinsRequired,
+    int? cashValue,
+    String? imageUrl,
+    bool? isActive,
+    DateTime? expiryDate,
+    int? stockRemaining,
+    List<String>? terms,
+    Map<String, dynamic>? metadata,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return RedemptionOffer(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      type: type ?? this.type,
+      coinsRequired: coinsRequired ?? this.coinsRequired,
+      cashValue: cashValue ?? this.cashValue,
+      imageUrl: imageUrl ?? this.imageUrl,
+      isActive: isActive ?? this.isActive,
+      expiryDate: expiryDate ?? this.expiryDate,
+      stockRemaining: stockRemaining ?? this.stockRemaining,
+      terms: terms ?? this.terms,
+      metadata: metadata ?? this.metadata,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+}
+
+/// User redemption model (user's redeemed rewards)
+class UserRedemption {
+  final String id;
+  final String userId;
+  final String offerId;
+  final String offerTitle; // Cached from offer
+  final RedemptionType type;
+  final int coinsSpent;
+  final int cashValue;
+  final RedemptionStatus status;
+  final DateTime redeemedAt;
+  final DateTime? completedAt;
+  final DateTime? expiryDate; // For vouchers
+  final String? voucherCode; // For voucher type
+  final String? qrCodeData; // QR code data for in-store use
+  final String? bankInfo; // For cash type (encrypted in production)
+  final String? failureReason;
+  final Map<String, dynamic>? metadata;
+
+  const UserRedemption({
+    required this.id,
+    required this.userId,
+    required this.offerId,
+    required this.offerTitle,
+    required this.type,
+    required this.coinsSpent,
+    required this.cashValue,
+    required this.status,
+    required this.redeemedAt,
+    this.completedAt,
+    this.expiryDate,
+    this.voucherCode,
+    this.qrCodeData,
+    this.bankInfo,
+    this.failureReason,
+    this.metadata,
+  });
+
+  /// Create from Firestore document
+  factory UserRedemption.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return UserRedemption(
+      id: doc.id,
+      userId: data['user_id'] as String? ?? '',
+      offerId: data['offer_id'] as String? ?? '',
+      offerTitle: data['offer_title'] as String? ?? '',
+      type: RedemptionType.values.firstWhere(
+        (e) => e.name == data['type'],
+        orElse: () => RedemptionType.voucher,
+      ),
+      coinsSpent: data['coins_spent'] as int? ?? 0,
+      cashValue: data['cash_value'] as int? ?? 0,
+      status: RedemptionStatus.values.firstWhere(
+        (e) => e.name == data['status'],
+        orElse: () => RedemptionStatus.pending,
+      ),
+      redeemedAt:
+          (data['redeemed_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      completedAt: (data['completed_at'] as Timestamp?)?.toDate(),
+      expiryDate: (data['expiry_date'] as Timestamp?)?.toDate(),
+      voucherCode: data['voucher_code'] as String?,
+      qrCodeData: data['qr_code_data'] as String?,
+      bankInfo: data['bank_info'] as String?,
+      failureReason: data['failure_reason'] as String?,
+      metadata: data['metadata'] as Map<String, dynamic>?,
+    );
+  }
+
+  /// Convert to Firestore document
+  Map<String, dynamic> toFirestore() {
+    return {
+      'user_id': userId,
+      'offer_id': offerId,
+      'offer_title': offerTitle,
+      'type': type.name,
+      'coins_spent': coinsSpent,
+      'cash_value': cashValue,
+      'status': status.name,
+      'redeemed_at': Timestamp.fromDate(redeemedAt),
+      'completed_at':
+          completedAt != null ? Timestamp.fromDate(completedAt!) : null,
+      'expiry_date':
+          expiryDate != null ? Timestamp.fromDate(expiryDate!) : null,
+      'voucher_code': voucherCode,
+      'qr_code_data': qrCodeData,
+      'bank_info': bankInfo,
+      'failure_reason': failureReason,
+      'metadata': metadata,
+    };
+  }
+
+  /// Check if voucher is expired
+  bool get isExpired {
+    if (expiryDate == null) return false;
+    return DateTime.now().isAfter(expiryDate!);
+  }
+
+  /// Check if voucher is usable
+  bool get isUsable {
+    if (type != RedemptionType.voucher) return false;
+    if (status != RedemptionStatus.completed) return false;
+    if (isExpired) return false;
+    return true;
+  }
+
+  /// Copy with method
+  UserRedemption copyWith({
+    String? id,
+    String? userId,
+    String? offerId,
+    String? offerTitle,
+    RedemptionType? type,
+    int? coinsSpent,
+    int? cashValue,
+    RedemptionStatus? status,
+    DateTime? redeemedAt,
+    DateTime? completedAt,
+    DateTime? expiryDate,
+    String? voucherCode,
+    String? qrCodeData,
+    String? bankInfo,
+    String? failureReason,
+    Map<String, dynamic>? metadata,
+  }) {
+    return UserRedemption(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      offerId: offerId ?? this.offerId,
+      offerTitle: offerTitle ?? this.offerTitle,
+      type: type ?? this.type,
+      coinsSpent: coinsSpent ?? this.coinsSpent,
+      cashValue: cashValue ?? this.cashValue,
+      status: status ?? this.status,
+      redeemedAt: redeemedAt ?? this.redeemedAt,
+      completedAt: completedAt ?? this.completedAt,
+      expiryDate: expiryDate ?? this.expiryDate,
+      voucherCode: voucherCode ?? this.voucherCode,
+      qrCodeData: qrCodeData ?? this.qrCodeData,
+      bankInfo: bankInfo ?? this.bankInfo,
+      failureReason: failureReason ?? this.failureReason,
+      metadata: metadata ?? this.metadata,
     );
   }
 }

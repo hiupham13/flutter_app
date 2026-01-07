@@ -305,6 +305,10 @@ class _TransactionHistoryScreenState
         return 'Thưởng';
       case TransactionType.refund:
         return 'Hoàn Tiền';
+      case TransactionType.redemption:
+        return 'Đổi Quà';
+      case TransactionType.redemptionRefund:
+        return 'Hoàn Xu';
     }
   }
 
@@ -318,6 +322,10 @@ class _TransactionHistoryScreenState
         return 'Thưởng streak, sự kiện';
       case TransactionType.refund:
         return 'Hoàn lại từ đơn hủy';
+      case TransactionType.redemption:
+        return 'Đổi voucher, rút tiền';
+      case TransactionType.redemptionRefund:
+        return 'Hoàn xu từ đơn hủy';
     }
   }
 }
@@ -373,6 +381,14 @@ class TransactionTile extends StatelessWidget {
         iconData = Icons.undo;
         color = Colors.blue;
         break;
+      case TransactionType.redemption:
+        iconData = Icons.redeem;
+        color = Colors.deepOrange;
+        break;
+      case TransactionType.redemptionRefund:
+        iconData = Icons.refresh;
+        color = Colors.teal;
+        break;
     }
 
     return Container(
@@ -400,6 +416,10 @@ class TransactionTile extends StatelessWidget {
         return 'Thưởng';
       case TransactionType.refund:
         return 'Hoàn Tiền';
+      case TransactionType.redemption:
+        return 'Đổi Thưởng';
+      case TransactionType.redemptionRefund:
+        return 'Hoàn Xu';
     }
   }
 
@@ -503,6 +523,10 @@ class TransactionTile extends StatelessWidget {
         return 'Thưởng';
       case TransactionType.refund:
         return 'Hoàn Tiền';
+      case TransactionType.redemption:
+        return 'Đổi Quà';
+      case TransactionType.redemptionRefund:
+        return 'Hoàn Xu';
     }
   }
 }
