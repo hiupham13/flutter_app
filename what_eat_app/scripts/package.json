@@ -1,0 +1,22 @@
+{
+  "name": "cloudinary-upload-script",
+  "version": "1.0.0",
+  "description": "Script để upload nhiều ảnh lên Cloudinary cùng lúc",
+  "main": "upload-to-cloudinary.js",
+  "scripts": {
+    "upload": "node upload-to-cloudinary.js",
+    "start": "node upload-to-cloudinary.js"
+  },
+  "keywords": [
+    "cloudinary",
+    "upload",
+    "batch",
+    "images"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cloudinary": "^1.41.0",
+    "dotenv": "^16.6.1"
+  }
+}
