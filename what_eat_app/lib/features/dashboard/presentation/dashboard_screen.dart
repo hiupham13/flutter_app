@@ -182,11 +182,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           budget: input.budget,
           companion: input.companion,
           mood: input.mood,
+          foodType: input.foodType,
           // Use defaults first for faster response
           excludedAllergens: const [],
           blacklistedFoods: const [],
           isVegetarian: false,
-          spiceTolerance: 2,
+          spiceTolerance: input.spiceLevel ?? 2,
         ),
       ]);
 
@@ -202,10 +203,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         excludedAllergens: userSettings?.excludedAllergens ?? const [],
         blacklistedFoods: userSettings?.blacklistedFoods ?? const [],
         isVegetarian: userSettings?.isVegetarian ?? false,
-        spiceTolerance: userSettings?.spiceTolerance ?? 2,
+        spiceTolerance: userSettings?.spiceTolerance ?? (input.spiceLevel ?? 2),
         favoriteCuisines: recommendationContext.favoriteCuisines,
         recentlyEaten: recommendationContext.recentlyEaten,
         excludedFoods: recommendationContext.excludedFoods,
+        foodType: recommendationContext.foodType,
       );
 
       final loadTime = DateTime.now().difference(startTime).inMilliseconds;

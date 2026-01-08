@@ -29,6 +29,7 @@ class RecommendationContext {
   final bool isVegetarian;
   final int spiceTolerance; // 0-5
   final List<DietaryRestriction> dietaryRestrictions; // 🆕 Keto, vegan, halal, etc.
+  final String? foodType; // 🆕 "wet" (nước), "dry" (khô), null
 
   RecommendationContext({
     this.weather,
@@ -43,6 +44,7 @@ class RecommendationContext {
     this.isVegetarian = false,
     this.spiceTolerance = 2,
     this.dietaryRestrictions = const [],
+    this.foodType,
   });
   
   /// Create copy with updated values
@@ -59,6 +61,7 @@ class RecommendationContext {
     bool? isVegetarian,
     int? spiceTolerance,
     List<DietaryRestriction>? dietaryRestrictions,
+    String? foodType,
   }) {
     return RecommendationContext(
       weather: weather ?? this.weather,
@@ -73,6 +76,7 @@ class RecommendationContext {
       isVegetarian: isVegetarian ?? this.isVegetarian,
       spiceTolerance: spiceTolerance ?? this.spiceTolerance,
       dietaryRestrictions: dietaryRestrictions ?? this.dietaryRestrictions,
+      foodType: foodType ?? this.foodType,
     );
   }
 }
@@ -144,6 +148,33 @@ class ScoringEngine {
     final budgetMultiplier = _getBudgetMultiplier(food, context.budget);
     score *= budgetMultiplier * (1.0 + (_weights.budgetWeight - 1.0) * 0.5);
     
+    // 🆕 Food type multiplier (wet/dry)
+    if (context.foodType != null) {
+      final isWetFood = _isWetFood(food);
+      if (context.foodType == 'wet' && isWetFood) {
+        score *= 1.3; // Boost wet foods if user wants wet
+      } else if (context.foodType == 'dry' && !isWetFood) {
+        score *= 1.3; // Boost dry foods if user wants dry
+      } else {
+        score *= 0.7; // Reduce score if doesn't match preference
+      }
+    }
+    
+    // 🆕 Spice level multiplier
+    if (context.spiceTolerance != null) {
+      final foodSpiceLevel = _getFoodSpiceLevel(food);
+      final spiceDiff = (foodSpiceLevel - context.spiceTolerance).abs();
+      if (spiceDiff == 0) {
+        score *= 1.2; // Perfect match
+      } else if (spiceDiff == 1) {
+        score *= 1.0; // Close match
+      } else if (spiceDiff == 2) {
+        score *= 0.8; // Somewhat different
+      } else {
+        score *= 0.5; // Very different
+      }
+    }
+    
     final timeAvailabilityMultiplier = _getTimeAvailabilityMultiplier(food);
     score *= timeAvailabilityMultiplier * (1.0 + (_weights.timeWeight - 1.0) * 0.5);
     
@@ -214,7 +245,60 @@ class ScoringEngine {
       }
     }
     
+    // 🆕 Check food type (wet/dry) - soft filter (prefer matching but allow others)
+    if (context.foodType != null) {
+      final isWetFood = _isWetFood(food);
+      if (context.foodType == 'wet' && !isWetFood) {
+        // Prefer wet foods but don't hard filter
+        // Will be handled in scoring
+      } else if (context.foodType == 'dry' && isWetFood) {
+        // Prefer dry foods but don't hard filter
+        // Will be handled in scoring
+      }
+    }
+    
     return true;
+  }
+  
+  /// 🆕 Check if food is wet (nước) or dry (khô)
+  /// Dựa vào searchKeywords và flavorProfile
+  bool _isWetFood(FoodModel food) {
+    final wetKeywords = ['nước', 'súp', 'canh', 'lẩu', 'phở', 'bún', 'miến', 'cháo', 'nước dùng'];
+    final dryKeywords = ['khô', 'rán', 'nướng', 'chiên', 'xào', 'bánh', 'cơm', 'mì'];
+    
+    // Check searchKeywords
+    for (final keyword in food.searchKeywords) {
+      final lowerKeyword = keyword.toLowerCase();
+      if (wetKeywords.any((w) => lowerKeyword.contains(w))) {
+        return true;
+      }
+      if (dryKeywords.any((d) => lowerKeyword.contains(d))) {
+        return false;
+      }
+    }
+    
+    // Check flavorProfile
+    for (final profile in food.flavorProfile) {
+      final lowerProfile = profile.toLowerCase();
+      if (wetKeywords.any((w) => lowerProfile.contains(w))) {
+        return true;
+      }
+      if (dryKeywords.any((d) => lowerProfile.contains(d))) {
+        return false;
+      }
+    }
+    
+    // Check description
+    final lowerDesc = food.description.toLowerCase();
+    if (wetKeywords.any((w) => lowerDesc.contains(w))) {
+      return true;
+    }
+    if (dryKeywords.any((d) => lowerDesc.contains(d))) {
+      return false;
+    }
+    
+    // Default: assume dry if unclear
+    return false;
   }
 
   /// Tính multiplier dựa trên thời tiết
@@ -270,6 +354,50 @@ class ScoringEngine {
     // Nếu không bán ở khung giờ hiện tại → Giảm điểm nhưng vẫn cho phép
     // (Vì có thể user vẫn muốn ăn món đó dù không phải giờ bán chính)
     return 0.6; // Giảm 40% điểm nhưng vẫn pass
+  }
+  
+  /// 🆕 Get food spice level (0-5) based on flavorProfile and searchKeywords
+  int _getFoodSpiceLevel(FoodModel food) {
+    final spiceKeywords = {
+      'không cay': 0,
+      'nhẹ': 1,
+      'vừa': 2,
+      'cay': 3,
+      'rất cay': 4,
+      'cực cay': 5,
+      'spicy': 3,
+      'mild': 1,
+      'hot': 4,
+    };
+    
+    // Check searchKeywords
+    for (final keyword in food.searchKeywords) {
+      final lowerKeyword = keyword.toLowerCase();
+      for (final entry in spiceKeywords.entries) {
+        if (lowerKeyword.contains(entry.key)) {
+          return entry.value;
+        }
+      }
+    }
+    
+    // Check flavorProfile
+    for (final profile in food.flavorProfile) {
+      final lowerProfile = profile.toLowerCase();
+      for (final entry in spiceKeywords.entries) {
+        if (lowerProfile.contains(entry.key)) {
+          return entry.value;
+        }
+      }
+    }
+    
+    // Check contextScores
+    final spiceScore = food.contextScores['spice_level'];
+    if (spiceScore != null) {
+      return spiceScore.round().clamp(0, 5);
+    }
+    
+    // Default: medium spice (2)
+    return 2;
   }
 
 

@@ -35,6 +35,7 @@ class ContextManager {
     List<String> blacklistedFoods = const [],
     bool isVegetarian = false,
     int spiceTolerance = 2,
+    String? foodType,
   }) async {
     // Lấy location
     final position = await _locationService.getCurrentLocation();
@@ -78,6 +79,7 @@ class ContextManager {
       blacklistedFoods: blacklistedFoods,
       isVegetarian: isVegetarian,
       spiceTolerance: spiceTolerance,
+      foodType: foodType,
     );
   }
 
