@@ -5,6 +5,7 @@ import 'package:flutter/services.dart' show rootBundle;
 
 import '../constants/firebase_collections.dart';
 import '../utils/logger.dart';
+import '../../features/rewards/data/mock_redemption_data.dart';
 
 class FirestoreSeeder {
   final FirebaseFirestore _firestore;
@@ -60,6 +61,45 @@ class FirestoreSeeder {
     }
     await batch.commit();
     AppLogger.info('Foods batch2 seeded to Firestore');
+  }
+
+  /// Seed redemption offers from mock data
+  /// 
+  /// Seeds all mock redemption offers (vouchers, cash, premium) to Firestore
+  /// for demo/testing purposes.
+  Future<void> seedRedemptionOffers({bool dryRun = false}) async {
+    final offers = MockRedemptionData.allOffers;
+    AppLogger.info('Redemption offers loaded from mock data (${offers.length} items)');
+    
+    if (dryRun) {
+      AppLogger.info('Dry run - would seed: ${offers.map((o) => o.title).join(', ')}');
+      return;
+    }
+
+    try {
+      final batch = _firestore.batch();
+      for (final offer in offers) {
+        final ref = _firestore
+            .collection('redemption_offers')
+            .doc(offer.id);
+        batch.set(ref, offer.toFirestore(), SetOptions(merge: true));
+      }
+      await batch.commit();
+      AppLogger.info('✅ Redemption offers seeded to Firestore successfully!');
+    } catch (e, st) {
+      AppLogger.error('❌ Failed to seed redemption offers: $e', e, st);
+      rethrow;
+    }
+  }
+
+  /// Seed all data (convenience method)
+  Future<void> seedAll({bool dryRun = false}) async {
+    AppLogger.info('🌱 Starting full data seed...');
+    await seedMasterData(dryRun: dryRun);
+    await seedFoods(dryRun: dryRun);
+    await seedFoodsBatch2(dryRun: dryRun);
+    await seedRedemptionOffers(dryRun: dryRun);
+    AppLogger.info('✅ All data seeded successfully!');
   }
 }
 

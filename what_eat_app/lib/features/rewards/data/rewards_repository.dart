@@ -479,10 +479,22 @@ class RewardsRepository {
       query = query.where('is_active', isEqualTo: true);
 
       final snapshot = await query.get();
+      AppLogger.info('📦 Fetched ${snapshot.docs.length} offers from Firestore');
+      
       final offers = snapshot.docs
-          .map((doc) => RedemptionOffer.fromFirestore(doc))
+          .map((doc) {
+            try {
+              return RedemptionOffer.fromFirestore(doc);
+            } catch (e) {
+              AppLogger.error('Error parsing offer ${doc.id}: $e');
+              return null;
+            }
+          })
+          .whereType<RedemptionOffer>()
           .where((offer) => offer.isAvailable)
           .toList();
+
+      AppLogger.info('✅ Parsed ${offers.length} available offers');
 
       // Filter by max coins if specified
       if (maxCoins != null) {

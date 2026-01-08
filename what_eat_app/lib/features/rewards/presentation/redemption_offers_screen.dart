@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../models/reward_model.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../config/theme/style_tokens.dart';
@@ -573,10 +574,10 @@ class _RedemptionOffersScreenState
             ),
             actions: [
               if (redemption.type == RedemptionType.voucher)
-                TextButton(
+                  TextButton(
                   onPressed: () {
                     Navigator.pop(context);
-                    Navigator.of(context).pushNamed('my_vouchers');
+                    context.pushNamed('my_vouchers');
                   },
                   child: const Text('Xem voucher'),
                 ),
