@@ -55,10 +55,33 @@ class RestaurantRepository {
         userPosition = await _locationService.getCurrentLocation();
         if (userPosition == null) {
           // No location, return all restaurants without distance
+          AppLogger.warning('No location available, returning all restaurants');
           return restaurants;
         }
         userLat = userPosition.latitude;
         userLng = userPosition.longitude;
+      }
+
+      // 🎭 DEMO MODE: Check if user is too far from all restaurants
+      // If so, use a fallback location in Ho Chi Minh City center
+      if (restaurants.isNotEmpty) {
+        final firstRestaurant = restaurants.first;
+        final distanceToFirst = Geolocator.distanceBetween(
+          userLat,
+          userLng,
+          firstRestaurant.latitude,
+          firstRestaurant.longitude,
+        );
+        
+        // If more than 1000km away, use fallback location
+        if (distanceToFirst > 1000000) {
+          userLat = 10.7769; // Central Ho Chi Minh City
+          userLng = 106.7009;
+          AppLogger.warning(
+            '🎭 DEMO MODE: User location too far from restaurants. '
+            'Using fallback location: HCM City Center ($userLat, $userLng)'
+          );
+        }
       }
 
       // Calculate distances and filter

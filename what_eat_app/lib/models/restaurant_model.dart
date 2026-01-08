@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 /// Restaurant model for displaying nearby restaurants
 /// Uses fake/seed data (Level 1 - Zero Cost approach)
 class RestaurantModel {

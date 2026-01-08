@@ -9,6 +9,8 @@ import '../../../features/user/logic/user_profile_provider.dart';
 import '../../../features/auth/logic/auth_provider.dart';
 import '../../../models/user_model.dart';
 import '../../../core/utils/logger.dart';
+import '../../../core/utils/firestore_seeder.dart';
+import '../../rewards/logic/rewards_provider.dart';
 import 'widgets/budget_selector_dialog.dart';
 import 'widgets/spice_tolerance_slider.dart';
 import 'widgets/allergen_picker_dialog.dart';
@@ -73,6 +75,18 @@ class SettingsScreen extends ConsumerWidget {
           title: 'Dữ Liệu',
           children: [
             _buildClearCacheTile(context, ref),
+          ],
+        ),
+        
+        const Divider(height: 32),
+        
+        // Debug Section (for development/demo)
+        _buildSection(
+          context: context,
+          title: '🔧 Debug & Demo',
+          children: [
+            _buildSeedRedemptionOffersTile(context, ref),
+            _buildCheckOffersDataTile(context, ref),
           ],
         ),
         
@@ -342,6 +356,96 @@ class SettingsScreen extends ConsumerWidget {
       },
     );
   }
+
+  Widget _buildSeedRedemptionOffersTile(BuildContext context, WidgetRef ref) {
+    return ListTile(
+      leading: const Icon(Icons.cloud_upload_outlined, color: Colors.orange),
+      title: const Text('Seed Redemption Offers'),
+      subtitle: const Text('Load mock data vào Firestore (12 offers)'),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () async {
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('🌱 Seed Redemption Offers?'),
+            content: const Text(
+              'Load 12 mock redemption offers vào Firestore:\n\n'
+              '• 5 Voucher offers (10K-50K)\n'
+              '• 4 Cash offers (20K-200K)\n'
+              '• 3 Premium offers\n\n'
+              'Thao tác này sẽ merge data với data hiện có.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Hủy'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Seed Now'),
+              ),
+            ],
+          ),
+        );
+        
+        if (confirmed == true) {
+          // Show loading indicator
+          if (context.mounted) {
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => const Center(
+                child: Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text('Seeding data...'),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }
+
+          try {
+            final seeder = FirestoreSeeder();
+            await seeder.seedRedemptionOffers();
+            
+            // Invalidate redemption offers provider to refetch data
+            ref.invalidate(redemptionOffersProvider);
+            
+            if (context.mounted) {
+              Navigator.pop(context); // Close loading dialog
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('✅ Đã seed 12 offers thành công! Vào Đổi Coin để xem.'),
+                  backgroundColor: Colors.green,
+                  duration: Duration(seconds: 4),
+                ),
+              );
+            }
+          } catch (e) {
+            AppLogger.error('Seed redemption offers failed: $e');
+            if (context.mounted) {
+              Navigator.pop(context); // Close loading dialog
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('❌ Lỗi: $e'),
+                  backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 5),
+                ),
+              );
+            }
+          }
+        }
+      },
+    );
+  }
   
   Widget _buildPrivacyPolicyTile(BuildContext context) {
     return ListTile(
@@ -455,6 +559,106 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ],
         );
+      },
+    );
+  }
+
+  Widget _buildCheckOffersDataTile(BuildContext context, WidgetRef ref) {
+    return ListTile(
+      leading: const Icon(Icons.search, color: Colors.blue),
+      title: const Text('Check Firestore Data'),
+      subtitle: const Text('Kiểm tra số lượng offers trong DB'),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () async {
+        // Show loading
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(
+            child: Card(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('Checking Firestore...'),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+
+        try {
+          // Force refetch by invalidating
+          ref.invalidate(redemptionOffersProvider);
+          
+          // Wait a bit for provider to fetch
+          await Future.delayed(const Duration(milliseconds: 500));
+          
+          // Get data
+          final offersAsync = ref.read(redemptionOffersProvider);
+          
+          if (context.mounted) {
+            Navigator.pop(context); // Close loading
+            
+            offersAsync.when(
+              data: (offers) {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('📊 Firestore Data'),
+                    content: Text(
+                      offers.isEmpty
+                          ? '❌ Không có offers nào trong Firestore!\n\n'
+                              'Hãy seed data trước.'
+                          : '✅ Tìm thấy ${offers.length} offers:\n\n'
+                              '${offers.map((o) => '• ${o.title} (${o.coinsRequired} coins)').join('\n')}',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('OK'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+              loading: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('⏳ Đang load...')),
+                );
+              },
+              error: (e, st) {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('❌ Error'),
+                    content: Text('Lỗi khi fetch data:\n\n$e'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('OK'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          }
+        } catch (e) {
+          if (context.mounted) {
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
       },
     );
   }
