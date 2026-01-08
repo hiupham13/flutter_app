@@ -5,11 +5,15 @@ class RecommendationInput {
   final int budget; // 1: Cuối tháng, 2: Bình dân, 3: Sang chảnh
   final String companion; // "alone", "date", "group"
   final String? mood; // "normal", "stress", "sick", "happy"
+  final String? foodType; // "wet" (nước), "dry" (khô), null (không quan trọng)
+  final int? spiceLevel; // 0-5, null (không quan trọng)
 
   RecommendationInput({
     required this.budget,
     required this.companion,
     this.mood,
+    this.foodType,
+    this.spiceLevel,
   });
 }
 
@@ -48,9 +52,14 @@ class _InputBottomSheetState extends State<InputBottomSheet> {
   int? _selectedBudget;
   String? _selectedCompanion;
   String? _selectedMood;
+  String? _selectedFoodType; // 🆕
+  int? _selectedSpiceLevel; // 🆕
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final maxHeight = screenHeight * 0.9; // Max 90% of screen height
+    
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -58,6 +67,9 @@ class _InputBottomSheetState extends State<InputBottomSheet> {
       ),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      constraints: BoxConstraints(
+        maxHeight: maxHeight,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -73,69 +85,84 @@ class _InputBottomSheetState extends State<InputBottomSheet> {
             ),
           ),
 
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Hôm nay ăn gì?',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Chọn thông tin để gợi ý món ăn phù hợp',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                // Budget Selection
-                _buildSectionTitle('💰 Túi tiền'),
-                const SizedBox(height: 12),
-                _buildBudgetSelection(),
-                const SizedBox(height: 24),
-
-                // Companion Selection
-                _buildSectionTitle('👥 Đi cùng ai?'),
-                const SizedBox(height: 12),
-                _buildCompanionSelection(),
-                const SizedBox(height: 24),
-
-                // Mood Selection (Optional)
-                _buildSectionTitle('😐 Tâm trạng (Tùy chọn)'),
-                const SizedBox(height: 12),
-                _buildMoodSelection(),
-                const SizedBox(height: 32),
-
-                // Confirm Button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _canConfirm() ? _handleConfirm : null,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: Colors.orange,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'CHỐT ĐƠN',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Hôm nay ăn gì?',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Chọn thông tin để gợi ý món ăn phù hợp',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Budget Selection
+                  _buildSectionTitle('💰 Túi tiền'),
+                  const SizedBox(height: 12),
+                  _buildBudgetSelection(),
+                  const SizedBox(height: 20),
+
+                  // Companion Selection
+                  _buildSectionTitle('👥 Đi cùng ai?'),
+                  const SizedBox(height: 12),
+                  _buildCompanionSelection(),
+                  const SizedBox(height: 20),
+
+                  // 🆕 Food Type Selection (Nước/Khô)
+                  _buildSectionTitle('🍜 Loại món (Tùy chọn)'),
+                  const SizedBox(height: 12),
+                  _buildFoodTypeSelection(),
+                  const SizedBox(height: 20),
+
+                  // 🆕 Spice Level Selection
+                  _buildSectionTitle('🌶️ Độ cay (Tùy chọn)'),
+                  const SizedBox(height: 12),
+                  _buildSpiceLevelSelection(),
+                  const SizedBox(height: 20),
+
+                  // Mood Selection (Optional)
+                  _buildSectionTitle('😐 Tâm trạng (Tùy chọn)'),
+                  const SizedBox(height: 12),
+                  _buildMoodSelection(),
+                  const SizedBox(height: 24),
+
+                  // Confirm Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _canConfirm() ? _handleConfirm : null,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        backgroundColor: Colors.orange,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text(
+                        'CHỐT ĐƠN',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -314,6 +341,83 @@ class _InputBottomSheetState extends State<InputBottomSheet> {
     return _selectedBudget != null && _selectedCompanion != null;
   }
 
+  // 🆕 Build Food Type Selection (Nước/Khô)
+  Widget _buildFoodTypeSelection() {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildOptionCard(
+            icon: '🍜',
+            label: 'Món nước',
+            isSelected: _selectedFoodType == 'wet',
+            onTap: () => setState(() => 
+              _selectedFoodType = _selectedFoodType == 'wet' ? null : 'wet'
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildOptionCard(
+            icon: '🍱',
+            label: 'Món khô',
+            isSelected: _selectedFoodType == 'dry',
+            onTap: () => setState(() => 
+              _selectedFoodType = _selectedFoodType == 'dry' ? null : 'dry'
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildOptionCard(
+            icon: '🤷',
+            label: 'Không quan trọng',
+            isSelected: _selectedFoodType == null,
+            onTap: () => setState(() => _selectedFoodType = null),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 🆕 Build Spice Level Selection
+  Widget _buildSpiceLevelSelection() {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _buildSpiceChip('Không cay', 0),
+        _buildSpiceChip('Hơi cay', 1),
+        _buildSpiceChip('Cay vừa', 2),
+        _buildSpiceChip('Cay', 3),
+        _buildSpiceChip('Rất cay', 4),
+        _buildSpiceChip('Cực cay', 5),
+      ],
+    );
+  }
+
+  Widget _buildSpiceChip(String label, int level) {
+    final isSelected = _selectedSpiceLevel == level;
+    return ChoiceChip(
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('🌶️' * (level == 0 ? 0 : level)),
+          if (level == 0) const SizedBox(width: 0),
+          const SizedBox(width: 4),
+          Text(label),
+        ],
+      ),
+      selected: isSelected,
+      onSelected: (selected) {
+        setState(() {
+          _selectedSpiceLevel = selected ? level : null;
+        });
+      },
+      selectedColor: Colors.orange[100],
+      checkmarkColor: Colors.orange,
+    );
+  }
+
   void _handleConfirm() {
     if (!_canConfirm()) return;
 
@@ -321,6 +425,8 @@ class _InputBottomSheetState extends State<InputBottomSheet> {
       budget: _selectedBudget!,
       companion: _selectedCompanion!,
       mood: _selectedMood,
+      foodType: _selectedFoodType,
+      spiceLevel: _selectedSpiceLevel,
     );
 
     widget.onConfirm(input);
